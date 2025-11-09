@@ -119,32 +119,6 @@ class CourseSeeder extends Seeder
         // Update course lesson count and duration
         $htmlCourse->updateLessonCount();
 
-        // Create CSS3 Tutorial Course
-        $cssCourse = Course::create([
-            'title' => 'CSS3 Complete Guide',
-            'slug' => 'css3-complete-guide',
-            'description' => 'Master CSS3 and learn how to style modern web pages with animations, flexbox, and grid.',
-            'category' => 'web-development',
-            'difficulty_level' => 'intermediate',
-            'tags' => ['CSS', 'CSS3', 'Styling', 'Web Design'],
-            'is_free' => true,
-            'is_published' => true,
-            'order_index' => 2,
-        ]);
-
-        // Create JavaScript Course
-        $jsCourse = Course::create([
-            'title' => 'JavaScript Programming',
-            'slug' => 'javascript-programming',
-            'description' => 'Learn JavaScript from basics to advanced concepts including ES6+, async programming, and more.',
-            'category' => 'programming',
-            'difficulty_level' => 'intermediate',
-            'tags' => ['JavaScript', 'ES6', 'Programming', 'Web Development'],
-            'is_free' => false,
-            'is_published' => false,
-            'order_index' => 3,
-        ]);
-
-        $this->command->info('Sample courses, lessons, topics, and code examples created successfully!');
+        $this->command->info('HTML5 course, lessons, topics, and code examples created successfully!');
     }
 }

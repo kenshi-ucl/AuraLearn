@@ -49,6 +49,7 @@ Route::prefix('admin')->middleware('admin_api')->group(function () {
         Route::get('users', [AdminDashboardController::class, 'users']);
         Route::get('logs', [AdminDashboardController::class, 'logs']);
         Route::get('settings', [AdminDashboardController::class, 'settings']);
+        Route::put('settings', [AdminDashboardController::class, 'updateSettings']);
 
         // User Management Routes
         Route::prefix('user-management')->group(function () {

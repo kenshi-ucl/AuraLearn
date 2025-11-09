@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Admin;
+use App\Models\AuditLog;
 
 class AdminAuthController extends Controller
 {
@@ -18,10 +19,16 @@ class AdminAuthController extends Controller
 
         $admin = Admin::where('email', $validated['email'])->first();
         if (!$admin || !Hash::check($validated['password'], $admin->password)) {
+            // Log failed admin login attempt
+            AuditLog::logFailedLogin('admin', $validated['email']);
+            
             return response()->json(['message' => 'Invalid credentials'], 422);
         }
 
         Auth::guard('admin')->login($admin, true);
+
+        // Log successful admin login
+        AuditLog::logLogin('admin', $admin->id, $admin->email);
 
         return response()->json([
             'message' => 'Logged in',
@@ -50,6 +57,12 @@ class AdminAuthController extends Controller
 
     public function logout(Request $request)
     {
+        $admin = Auth::guard('admin')->user();
+        
+        if ($admin) {
+            AuditLog::logLogout('admin', $admin->id);
+        }
+        
         Auth::guard('admin')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

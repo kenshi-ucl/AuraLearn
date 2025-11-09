@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -88,6 +89,9 @@ class UserAuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
+            // Log failed login attempt
+            AuditLog::logFailedLogin('user', $request->email);
+            
             return response()->json([
                 'message' => 'Invalid credentials'
             ], 401);
@@ -101,6 +105,9 @@ class UserAuthController extends Controller
 
         // Log the user in
         Auth::login($user, $request->remember ?? false);
+
+        // Log successful login
+        AuditLog::logLogin('user', $user->id, $user->email);
 
         return response()->json([
             'message' => 'Login successful',
@@ -147,6 +154,12 @@ class UserAuthController extends Controller
      */
     public function logout(Request $request)
     {
+        $user = Auth::user();
+        
+        if ($user) {
+            AuditLog::logLogout('user', $user->id);
+        }
+        
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
