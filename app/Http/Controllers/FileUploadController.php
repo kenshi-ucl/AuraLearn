@@ -243,7 +243,7 @@ class FileUploadController extends Controller
             $fileContent = file_get_contents($file->getRealPath());
             
             // Upload file to Supabase Storage - send binary content directly
-            $response = Http::withHeaders([
+            $response = Http::timeout(30)->withHeaders([
                 'Authorization' => "Bearer {$supabaseKey}",
                 'Content-Type' => $file->getMimeType(),
                 'x-upsert' => 'true', // Allow overwriting if file exists
@@ -251,13 +251,23 @@ class FileUploadController extends Controller
               ->post($uploadUrl);
             
             if (!$response->successful()) {
+                $errorMessage = 'Supabase upload failed';
+                $errorBody = $response->body();
+                
+                // Check if it's a policy error
+                if (str_contains($errorBody, 'policy') || str_contains($errorBody, 'RLS') || str_contains($errorBody, 'permission')) {
+                    $errorMessage = 'Supabase Storage policy error. Please set up bucket policies in Supabase dashboard.';
+                }
+                
                 \Log::error('Supabase upload failed', [
                     'status' => $response->status(),
-                    'response' => $response->body(),
+                    'response' => $errorBody,
                     'url' => $uploadUrl,
-                    'mime' => $file->getMimeType()
+                    'mime' => $file->getMimeType(),
+                    'bucket' => $bucket,
+                    'path' => $path
                 ]);
-                throw new Exception('Supabase upload failed: ' . $response->body());
+                throw new Exception($errorMessage . ' Details: ' . $errorBody);
             }
             
             // Return public URL
