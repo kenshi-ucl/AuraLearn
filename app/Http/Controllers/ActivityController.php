@@ -322,13 +322,19 @@ class ActivityController extends Controller
                 
                 // Award achievement badges
                 if ($aiValidationResult['is_completed']) {
+                    error_log('🏆 Attempting to award badges for activity completion');
                     try {
                         $this->awardAchievementBadges($user->id, $activityId, $aiValidationResult['overall_score'], $attemptNumber);
+                        error_log('✅ Badge awarding completed');
                     } catch (\Exception $e) {
-                        Log::warning('Could not award achievement badges', [
-                            'error' => $e->getMessage()
+                        error_log('❌ Badge awarding failed: ' . $e->getMessage());
+                        Log::error('Could not award achievement badges', [
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString()
                         ]);
                     }
+                } else {
+                    error_log('⏭️ Skipping badge award - activity not completed');
                 }
             }
             
