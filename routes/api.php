@@ -17,6 +17,7 @@ use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AuraBotController;
 use App\Http\Controllers\AchievementController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\UserProgressController;
 //hello world
 // AuraBot RAG API Routes (public access for frontend)
 Route::prefix('aurabot')->group(function () {
@@ -242,11 +243,11 @@ Route::prefix('achievements')->group(function () {
 
 // User Progress Routes
 Route::get('user/progress', [AchievementController::class, 'userProgress']);
+Route::get('user/progress/lesson', [UserProgressController::class, 'getLessonProgress']);
 Route::post('user/progress/lesson-start', [UserProgressController::class, 'trackLessonStart']);
 Route::post('user/progress/update', [UserProgressController::class, 'updateLessonProgress']);
 Route::post('user/progress/time', [UserProgressController::class, 'trackTimeSpent']);
 Route::post('user/progress/topic', [UserProgressController::class, 'trackTopicComplete']);
-Route::get('user/progress', [UserProgressController::class, 'getLessonProgress']);
 
 // Course-specific achievements
 Route::get('courses/{courseId}/achievements', [AchievementController::class, 'courseAchievements']);
