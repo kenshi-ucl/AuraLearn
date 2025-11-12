@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'supabase' => [
+        'url' => env('SUPABASE_URL'),
+        'key' => env('SUPABASE_ANON_KEY'),
+        'storage_bucket' => env('SUPABASE_STORAGE_BUCKET', 'auralearn-uploads'),
+    ],
+
 ];

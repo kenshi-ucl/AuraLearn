@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Http;
 use Exception;
 
 class FileUploadController extends Controller
@@ -44,18 +45,13 @@ class FileUploadController extends Controller
             // Generate unique filename
             $filename = $this->generateUniqueFilename($file);
             
-            // Store file
-            $path = $file->storeAs($directory, $filename, 'public');
+            // Upload to Supabase Storage
+            $path = $directory . '/' . $filename;
+            $fullUrl = $this->uploadToSupabase($file, $path);
             
-            if (!$path) {
-                throw new Exception('Failed to store file');
+            if (!$fullUrl) {
+                throw new Exception('Failed to upload file to Supabase Storage');
             }
-
-            // Get full URL for the uploaded file
-            $storageUrl = Storage::url($path);
-            // Ensure no double slashes in the URL
-            $baseUrl = rtrim(config('app.url'), '/');
-            $fullUrl = $baseUrl . $storageUrl;
             
             // Get file info
             $fileInfo = [
@@ -117,18 +113,13 @@ class FileUploadController extends Controller
             // Generate unique filename
             $filename = $this->generateUniqueFilename($file);
             
-            // Store file
-            $path = $file->storeAs($directory, $filename, 'public');
+            // Upload to Supabase Storage
+            $path = $directory . '/' . $filename;
+            $fullUrl = $this->uploadToSupabase($file, $path);
             
-            if (!$path) {
-                throw new Exception('Failed to store file');
+            if (!$fullUrl) {
+                throw new Exception('Failed to upload file to Supabase Storage');
             }
-
-            // Get full URL for the uploaded file
-            $storageUrl = Storage::url($path);
-            // Ensure no double slashes in the URL
-            $baseUrl = rtrim(config('app.url'), '/');
-            $fullUrl = $baseUrl . $storageUrl;
             
             // Get file info
             $fileInfo = [
@@ -229,6 +220,50 @@ class FileUploadController extends Controller
         $timestamp = time();
         
         return "{$cleanName}_{$timestamp}_{$uniqueId}.{$extension}";
+    }
+
+    /**
+     * Upload file to Supabase Storage
+     */
+    private function uploadToSupabase($file, string $path): ?string
+    {
+        try {
+            $supabaseUrl = config('services.supabase.url');
+            $supabaseKey = config('services.supabase.key');
+            $bucket = config('services.supabase.storage_bucket', 'auralearn-uploads');
+            
+            if (!$supabaseUrl || !$supabaseKey) {
+                throw new Exception('Supabase configuration missing');
+            }
+            
+            // Prepare the upload URL
+            $uploadUrl = "{$supabaseUrl}/storage/v1/object/{$bucket}/{$path}";
+            
+            // Upload file to Supabase Storage
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$supabaseKey}",
+                'Content-Type' => $file->getMimeType(),
+            ])->attach(
+                'file',
+                file_get_contents($file->getRealPath()),
+                $file->getClientOriginalName()
+            )->post($uploadUrl);
+            
+            if (!$response->successful()) {
+                \Log::error('Supabase upload failed', [
+                    'status' => $response->status(),
+                    'response' => $response->body()
+                ]);
+                throw new Exception('Supabase upload failed: ' . $response->body());
+            }
+            
+            // Return public URL
+            return "{$supabaseUrl}/storage/v1/object/public/{$bucket}/{$path}";
+            
+        } catch (Exception $e) {
+            \Log::error('Supabase upload error', ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 
     /**
