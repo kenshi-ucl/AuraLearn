@@ -53,7 +53,7 @@ class FileUploadController extends Controller
 
             // Get full URL for the uploaded file
             $storageUrl = Storage::url($path);
-            $fullUrl = 'http://localhost:8000' . $storageUrl;
+            $fullUrl = config('app.url') . $storageUrl;
             
             // Get file info
             $fileInfo = [
@@ -124,7 +124,7 @@ class FileUploadController extends Controller
 
             // Get full URL for the uploaded file
             $storageUrl = Storage::url($path);
-            $fullUrl = 'http://localhost:8000' . $storageUrl;
+            $fullUrl = config('app.url') . $storageUrl;
             
             // Get file info
             $fileInfo = [
