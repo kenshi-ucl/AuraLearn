@@ -24,6 +24,30 @@ class TemporaryDatabaseService
 
     public function storeSubmission($data)
     {
+        // Enhanced logging for debugging
+        Log::info('📝 Starting submission storage', [
+            'user_id' => $data['user_id'] ?? 'MISSING',
+            'activity_id' => $data['activity_id'] ?? 'MISSING',
+            'is_completed' => $data['is_completed'] ?? 'MISSING',
+            'score' => $data['score'] ?? 'MISSING'
+        ]);
+        
+        // Validate required fields
+        $requiredFields = ['user_id', 'activity_id', 'submitted_code', 'score', 'is_completed', 'completion_status', 'feedback', 'attempt_number'];
+        $missingFields = [];
+        foreach ($requiredFields as $field) {
+            if (!isset($data[$field])) {
+                $missingFields[] = $field;
+            }
+        }
+        
+        if (!empty($missingFields)) {
+            Log::error('❌ Missing required fields for submission', [
+                'missing_fields' => $missingFields,
+                'provided_data' => array_keys($data)
+            ]);
+        }
+        
         // Store in JSON file for backward compatibility
         $filename = $this->storageDir . '/submissions.json';
         $submissions = $this->getStoredData($filename);
@@ -36,10 +60,15 @@ class TemporaryDatabaseService
         
         Storage::disk('local')->put($filename, json_encode($submissions, JSON_PRETTY_PRINT));
         
-        Log::info('Stored submission temporarily', ['id' => $data['id']]);
+        Log::info('💾 Stored submission temporarily', ['temp_id' => $data['id']]);
         
         // ALSO persist to actual database for dashboard tracking
         try {
+            Log::info('🔄 Attempting database persistence...', [
+                'user_id' => $data['user_id'],
+                'activity_id' => $data['activity_id']
+            ]);
+            
             $dbSubmission = ActivitySubmission::create([
                 'user_id' => $data['user_id'],
                 'activity_id' => $data['activity_id'],
@@ -55,24 +84,45 @@ class TemporaryDatabaseService
                 'completed_at' => $data['is_completed'] ? now() : null
             ]);
             
-            Log::info('✅ Submission persisted to database', [
+            Log::info('✅ SUBMISSION PERSISTED TO DATABASE', [
                 'db_id' => $dbSubmission->id,
                 'user_id' => $data['user_id'],
                 'activity_id' => $data['activity_id'],
-                'is_completed' => $data['is_completed'],
-                'score' => $data['score']
+                'is_completed' => $data['is_completed'] ? 'YES' : 'NO',
+                'score' => $data['score'],
+                'table' => 'activity_submissions'
             ]);
+            
+            // Verify the save by reading it back
+            $verification = ActivitySubmission::find($dbSubmission->id);
+            if ($verification) {
+                Log::info('✅ Database save verified', [
+                    'db_id' => $verification->id,
+                    'verified_user_id' => $verification->user_id,
+                    'verified_is_completed' => $verification->is_completed ? 'YES' : 'NO'
+                ]);
+            } else {
+                Log::error('❌ Database save verification FAILED - record not found after save!');
+            }
             
             // Update the data with the real database ID
             $data['db_id'] = $dbSubmission->id;
             
         } catch (\Exception $e) {
-            Log::warning('⚠️ Could not persist submission to database (continuing with temp storage)', [
-                'error' => $e->getMessage(),
+            Log::error('❌ DATABASE PERSISTENCE FAILED', [
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
                 'user_id' => $data['user_id'],
-                'activity_id' => $data['activity_id']
+                'activity_id' => $data['activity_id'],
+                'trace' => $e->getTraceAsString()
             ]);
         }
+        
+        Log::info('📤 Returning submission data', [
+            'has_db_id' => isset($data['db_id']),
+            'db_id' => $data['db_id'] ?? 'NOT_SAVED'
+        ]);
         
         return $data;
     }

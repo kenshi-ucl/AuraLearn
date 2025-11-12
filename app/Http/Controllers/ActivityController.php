@@ -167,13 +167,17 @@ class ActivityController extends Controller
         }
 
         try {
-            Log::info('🤖 Starting AI-powered submission validation', [
-                'activity_id' => $activityId,
-                'code_length' => strlen($request->user_code)
-            ]);
-
             // Get user from request or use default - USER-SPECIFIC DATA ISOLATION
             $userId = $request->input('user_id') ?? 1; // Default to user 1 if not provided
+            
+            Log::info('🚀 ACTIVITY SUBMISSION ENDPOINT HIT', [
+                'activity_id' => $activityId,
+                'user_id' => $userId,
+                'code_length' => strlen($request->user_code),
+                'time_spent' => $request->time_spent_minutes,
+                'request_has_user_id' => $request->has('user_id')
+            ]);
+            
             $user = (object)[
                 'id' => $userId,
                 'email' => 'user@example.com',
@@ -274,16 +278,36 @@ class ActivityController extends Controller
                 ])
             ];
             
+            Log::info('💾 About to store submission...', [
+                'user_id' => $user->id,
+                'activity_id' => $activityId,
+                'is_completed' => $aiValidationResult['is_completed'],
+                'score' => $aiValidationResult['overall_score']
+            ]);
+            
             $submission = $tempDB->storeSubmission($submissionData);
             
-            Log::info('🎉 AI-powered submission completed', [
+            Log::info('🎉 AI-POWERED SUBMISSION COMPLETED', [
                 'activity_id' => $activityId,
+                'user_id' => $user->id,
                 'score' => $aiValidationResult['overall_score'],
-                'is_completed' => $aiValidationResult['is_completed'],
-                'submission_id' => $submission['id'],
+                'is_completed' => $aiValidationResult['is_completed'] ? 'YES' : 'NO',
+                'submission_temp_id' => $submission['id'],
+                'submission_db_id' => $submission['db_id'] ?? 'NOT_SAVED_TO_DB',
                 'attempt_number' => $attemptNumber,
                 'ai_powered' => $aiValidationResult['ai_powered']
             ]);
+            
+            // Additional verification log
+            if (!isset($submission['db_id'])) {
+                Log::error('⚠️ WARNING: Submission did NOT get saved to database!', [
+                    'user_id' => $user->id,
+                    'activity_id' => $activityId,
+                    'temp_id' => $submission['id']
+                ]);
+            } else {
+                Log::info('✅ CONFIRMED: Submission saved to database with ID: ' . $submission['db_id']);
+            }
             
             return response()->json([
                 'success' => true,
