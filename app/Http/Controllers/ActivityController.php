@@ -321,10 +321,10 @@ class ActivityController extends Controller
                 }
                 
                 // Award achievement badges
-                if ($aiValidationResult['is_completed']) {
+                if ($aiValidationResult['is_completed'] && isset($submission['db_id'])) {
                     error_log('🏆 Attempting to award badges for activity completion');
                     try {
-                        $this->awardAchievementBadges($user->id, $activityId, $aiValidationResult['overall_score'], $attemptNumber);
+                        $this->awardAchievementBadges($user->id, $activityId, $submission['db_id'], $aiValidationResult['overall_score'], $attemptNumber);
                         error_log('✅ Badge awarding completed');
                     } catch (\Exception $e) {
                         error_log('❌ Badge awarding failed: ' . $e->getMessage());
@@ -334,7 +334,7 @@ class ActivityController extends Controller
                         ]);
                     }
                 } else {
-                    error_log('⏭️ Skipping badge award - activity not completed');
+                    error_log('⏭️ Skipping badge award - activity not completed or no submission ID');
                 }
             }
             
@@ -2698,7 +2698,7 @@ class ActivityController extends Controller
     /**
      * Award achievement badges based on performance
      */
-    private function awardAchievementBadges($userId, $activityId, $score, $attemptNumber)
+    private function awardAchievementBadges($userId, $activityId, $submissionId, $score, $attemptNumber)
     {
         $badgesAwarded = [];
         
@@ -2712,10 +2712,12 @@ class ActivityController extends Controller
             ActivityCertificate::firstOrCreate([
                 'user_id' => $userId,
                 'activity_id' => $activityId,
+                'submission_id' => $submissionId,
                 'certificate_type' => 'first_completion',
                 'badge_level' => 'bronze'
             ], [
-                'earned_at' => now()
+                'earned_at' => now(),
+                'is_verified' => \DB::raw('TRUE')
             ]);
             $badgesAwarded[] = 'First Success (Bronze)';
         }
@@ -2725,10 +2727,12 @@ class ActivityController extends Controller
             ActivityCertificate::firstOrCreate([
                 'user_id' => $userId,
                 'activity_id' => $activityId,
+                'submission_id' => $submissionId,
                 'certificate_type' => 'perfect_score',
                 'badge_level' => 'gold'
             ], [
-                'earned_at' => now()
+                'earned_at' => now(),
+                'is_verified' => \DB::raw('TRUE')
             ]);
             $badgesAwarded[] = 'Perfect Score (Gold)';
         }
@@ -2738,10 +2742,12 @@ class ActivityController extends Controller
             ActivityCertificate::firstOrCreate([
                 'user_id' => $userId,
                 'activity_id' => $activityId,
+                'submission_id' => $submissionId,
                 'certificate_type' => 'first_attempt',
                 'badge_level' => 'silver'
             ], [
-                'earned_at' => now()
+                'earned_at' => now(),
+                'is_verified' => \DB::raw('TRUE')
             ]);
             $badgesAwarded[] = 'First Try Success (Silver)';
         }
@@ -2752,18 +2758,22 @@ class ActivityController extends Controller
             ActivityCertificate::firstOrCreate([
                 'user_id' => $userId,
                 'activity_id' => $activityId,
+                'submission_id' => $submissionId,
                 'certificate_type' => 'milestone_5',
                 'badge_level' => 'silver'
             ], [
-                'earned_at' => now()
+                'earned_at' => now(),
+                'is_verified' => \DB::raw('TRUE')
             ]);
             $badgesAwarded[] = 'Dedicated Learner (Silver)';
         }
         
         if (!empty($badgesAwarded)) {
+            error_log('🏆 Badges awarded: ' . implode(', ', $badgesAwarded));
             Log::info('🏆 Badges awarded', [
                 'user_id' => $userId,
                 'activity_id' => $activityId,
+                'submission_id' => $submissionId,
                 'badges' => $badgesAwarded
             ]);
         }
