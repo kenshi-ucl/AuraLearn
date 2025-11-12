@@ -236,23 +236,26 @@ class FileUploadController extends Controller
                 throw new Exception('Supabase configuration missing');
             }
             
-            // Prepare the upload URL
+            // Prepare the upload URL - send file content directly in body
             $uploadUrl = "{$supabaseUrl}/storage/v1/object/{$bucket}/{$path}";
             
-            // Upload file to Supabase Storage
+            // Read file content
+            $fileContent = file_get_contents($file->getRealPath());
+            
+            // Upload file to Supabase Storage - send binary content directly
             $response = Http::withHeaders([
                 'Authorization' => "Bearer {$supabaseKey}",
                 'Content-Type' => $file->getMimeType(),
-            ])->attach(
-                'file',
-                file_get_contents($file->getRealPath()),
-                $file->getClientOriginalName()
-            )->post($uploadUrl);
+                'x-upsert' => 'true', // Allow overwriting if file exists
+            ])->withBody($fileContent, $file->getMimeType())
+              ->post($uploadUrl);
             
             if (!$response->successful()) {
                 \Log::error('Supabase upload failed', [
                     'status' => $response->status(),
-                    'response' => $response->body()
+                    'response' => $response->body(),
+                    'url' => $uploadUrl,
+                    'mime' => $file->getMimeType()
                 ]);
                 throw new Exception('Supabase upload failed: ' . $response->body());
             }
@@ -261,7 +264,10 @@ class FileUploadController extends Controller
             return "{$supabaseUrl}/storage/v1/object/public/{$bucket}/{$path}";
             
         } catch (Exception $e) {
-            \Log::error('Supabase upload error', ['error' => $e->getMessage()]);
+            \Log::error('Supabase upload error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return null;
         }
     }
