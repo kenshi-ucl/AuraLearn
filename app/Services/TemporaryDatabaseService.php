@@ -4,10 +4,12 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Models\ActivitySubmission;
 
 /**
  * Temporary file-based database service to handle missing PostgreSQL driver
  * This is a temporary workaround until PostgreSQL PHP extension is installed
+ * NOW ALSO PERSISTS TO DATABASE for dashboard compatibility
  */
 class TemporaryDatabaseService
 {
@@ -22,6 +24,7 @@ class TemporaryDatabaseService
 
     public function storeSubmission($data)
     {
+        // Store in JSON file for backward compatibility
         $filename = $this->storageDir . '/submissions.json';
         $submissions = $this->getStoredData($filename);
         
@@ -35,11 +38,88 @@ class TemporaryDatabaseService
         
         Log::info('Stored submission temporarily', ['id' => $data['id']]);
         
+        // ALSO persist to actual database for dashboard tracking
+        try {
+            $dbSubmission = ActivitySubmission::create([
+                'user_id' => $data['user_id'],
+                'activity_id' => $data['activity_id'],
+                'submitted_code' => $data['submitted_code'],
+                'score' => $data['score'],
+                'is_completed' => $data['is_completed'],
+                'completion_status' => $data['completion_status'],
+                'time_spent_minutes' => $data['time_spent_minutes'] ?? 0,
+                'feedback' => $data['feedback'],
+                'attempt_number' => $data['attempt_number'],
+                'validation_results' => is_string($data['validation_results']) ? $data['validation_results'] : json_encode($data['validation_results']),
+                'submitted_at' => now(),
+                'completed_at' => $data['is_completed'] ? now() : null
+            ]);
+            
+            Log::info('✅ Submission persisted to database', [
+                'db_id' => $dbSubmission->id,
+                'user_id' => $data['user_id'],
+                'activity_id' => $data['activity_id'],
+                'is_completed' => $data['is_completed'],
+                'score' => $data['score']
+            ]);
+            
+            // Update the data with the real database ID
+            $data['db_id'] = $dbSubmission->id;
+            
+        } catch (\Exception $e) {
+            Log::warning('⚠️ Could not persist submission to database (continuing with temp storage)', [
+                'error' => $e->getMessage(),
+                'user_id' => $data['user_id'],
+                'activity_id' => $data['activity_id']
+            ]);
+        }
+        
         return $data;
     }
 
     public function getSubmissionStatus($userId, $activityId)
     {
+        // Try to read from database first for accuracy
+        try {
+            $dbSubmissions = ActivitySubmission::where('user_id', $userId)
+                ->where('activity_id', $activityId)
+                ->orderBy('created_at', 'desc')
+                ->get();
+            
+            if ($dbSubmissions->isNotEmpty()) {
+                $latestSubmission = $dbSubmissions->first();
+                $bestScore = $dbSubmissions->max('score');
+                
+                Log::info('📊 Reading submission status from database', [
+                    'user_id' => $userId,
+                    'activity_id' => $activityId,
+                    'total_attempts' => $dbSubmissions->count(),
+                    'is_completed' => $latestSubmission->is_completed
+                ]);
+                
+                return [
+                    'total_attempts' => $dbSubmissions->count(),
+                    'remaining_attempts' => null,
+                    'best_score' => $bestScore,
+                    'is_completed' => $latestSubmission->is_completed,
+                    'latest_submission' => [
+                        'id' => $latestSubmission->id,
+                        'score' => $latestSubmission->score,
+                        'is_completed' => $latestSubmission->is_completed,
+                        'completion_status' => $latestSubmission->completion_status,
+                        'feedback' => $latestSubmission->feedback,
+                        'attempt_number' => $latestSubmission->attempt_number,
+                        'created_at' => $latestSubmission->created_at->toISOString()
+                    ]
+                ];
+            }
+        } catch (\Exception $e) {
+            Log::warning('⚠️ Could not read from database, falling back to temp storage', [
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        // Fallback to JSON file storage
         $filename = $this->storageDir . '/submissions.json';
         $submissions = $this->getStoredData($filename);
         
@@ -97,6 +177,7 @@ class TemporaryDatabaseService
      */
     public function clearUserActivityData($userId, $activityId)
     {
+        // Clear from JSON file
         $filename = $this->storageDir . '/submissions.json';
         $submissions = $this->getStoredData($filename);
         
@@ -107,11 +188,26 @@ class TemporaryDatabaseService
         
         Storage::disk('local')->put($filename, json_encode(array_values($filteredSubmissions), JSON_PRETTY_PRINT));
         
-        Log::info('Cleared temporary data for user/activity', [
-            'user_id' => $userId, 
-            'activity_id' => $activityId,
-            'removed_count' => count($submissions) - count($filteredSubmissions)
-        ]);
+        $removedCount = count($submissions) - count($filteredSubmissions);
+        
+        // Also clear from database
+        try {
+            $dbRemovedCount = ActivitySubmission::where('user_id', $userId)
+                ->where('activity_id', $activityId)
+                ->delete();
+            
+            Log::info('✅ Cleared data from database and temp storage', [
+                'user_id' => $userId, 
+                'activity_id' => $activityId,
+                'temp_removed' => $removedCount,
+                'db_removed' => $dbRemovedCount
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('⚠️ Could not clear database (temp storage cleared)', [
+                'error' => $e->getMessage(),
+                'temp_removed' => $removedCount
+            ]);
+        }
     }
 
     /**
