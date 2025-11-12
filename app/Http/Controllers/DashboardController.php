@@ -87,10 +87,14 @@ class DashboardController extends Controller
                 ->orderBy('updated_at', 'desc')
                 ->first();
 
-            // Get time spent learning (from activity submissions)
-            // Note: Lesson viewing time is tracked separately but not yet aggregated
-            $timeSpentMinutes = ActivitySubmission::where('user_id', $userId)
+            // Get time spent learning (from BOTH activity submissions AND lesson viewing)
+            $activityTime = ActivitySubmission::where('user_id', $userId)
                 ->sum('time_spent_minutes') ?? 0;
+            
+            $lessonTime = UserProgress::where('user_id', $userId)
+                ->sum('time_spent_minutes') ?? 0;
+            
+            $timeSpentMinutes = $activityTime + $lessonTime;
             
             $hours = floor($timeSpentMinutes / 60);
             $minutes = $timeSpentMinutes % 60;
