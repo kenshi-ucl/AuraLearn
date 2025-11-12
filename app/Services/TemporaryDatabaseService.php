@@ -101,6 +101,8 @@ class TemporaryDatabaseService
                 'completed_at' => $isCompletedValue ? now() : null
             ]);
             
+            error_log('✅ SUBMISSION PERSISTED TO DATABASE - ID: ' . $dbSubmission->id . ', User: ' . $data['user_id'] . ', Activity: ' . $data['activity_id']);
+            
             Log::info('✅ SUBMISSION PERSISTED TO DATABASE', [
                 'db_id' => $dbSubmission->id,
                 'user_id' => $data['user_id'],
@@ -126,6 +128,11 @@ class TemporaryDatabaseService
             $data['db_id'] = $dbSubmission->id;
             
         } catch (\Exception $e) {
+            $errorMsg = '❌ DATABASE PERSISTENCE FAILED: ' . $e->getMessage();
+            error_log($errorMsg);  // Send to stderr for Heroku logs
+            error_log('Error file: ' . $e->getFile() . ' line ' . $e->getLine());
+            error_log('User ID: ' . $data['user_id'] . ', Activity ID: ' . $data['activity_id']);
+            
             Log::error('❌ DATABASE PERSISTENCE FAILED', [
                 'error_message' => $e->getMessage(),
                 'error_file' => $e->getFile(),
