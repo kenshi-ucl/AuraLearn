@@ -86,20 +86,25 @@ class TemporaryDatabaseService
                 'normalized' => $isCompletedValue
             ]);
             
-            $dbSubmission = ActivitySubmission::create([
+            // Use DB::table()->insert() with raw casting for PostgreSQL boolean
+            $submissionId = \DB::table('activity_submissions')->insertGetId([
                 'user_id' => (int)$data['user_id'],
                 'activity_id' => (int)$data['activity_id'],
                 'submitted_code' => $data['submitted_code'],
                 'score' => (int)$data['score'],
-                'is_completed' => $isCompletedValue,
+                'is_completed' => \DB::raw($isCompletedValue ? 'TRUE' : 'FALSE'),
                 'completion_status' => $data['completion_status'],
                 'time_spent_minutes' => (int)($data['time_spent_minutes'] ?? 0),
                 'feedback' => $data['feedback'],
                 'attempt_number' => (int)$data['attempt_number'],
                 'validation_results' => is_string($data['validation_results']) ? $data['validation_results'] : json_encode($data['validation_results']),
                 'submitted_at' => now(),
-                'completed_at' => $isCompletedValue ? now() : null
+                'completed_at' => $isCompletedValue ? now() : null,
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
+            
+            $dbSubmission = ActivitySubmission::find($submissionId);
             
             error_log('✅ SUBMISSION PERSISTED TO DATABASE - ID: ' . $dbSubmission->id . ', User: ' . $data['user_id'] . ', Activity: ' . $data['activity_id']);
             
