@@ -66,22 +66,39 @@ class TemporaryDatabaseService
         try {
             Log::info('🔄 Attempting database persistence...', [
                 'user_id' => $data['user_id'],
-                'activity_id' => $data['activity_id']
+                'activity_id' => $data['activity_id'],
+                'is_completed' => $data['is_completed'],
+                'is_completed_type' => gettype($data['is_completed'])
+            ]);
+            
+            // Ensure boolean values are properly cast for PostgreSQL
+            $isCompletedValue = $data['is_completed'];
+            if (is_bool($isCompletedValue)) {
+                $isCompletedValue = $isCompletedValue ? 1 : 0;
+            } elseif ($isCompletedValue === 'true' || $isCompletedValue === '1') {
+                $isCompletedValue = 1;
+            } elseif ($isCompletedValue === 'false' || $isCompletedValue === '0') {
+                $isCompletedValue = 0;
+            }
+            
+            Log::info('📊 Normalized is_completed value', [
+                'original' => $data['is_completed'],
+                'normalized' => $isCompletedValue
             ]);
             
             $dbSubmission = ActivitySubmission::create([
-                'user_id' => $data['user_id'],
-                'activity_id' => $data['activity_id'],
+                'user_id' => (int)$data['user_id'],
+                'activity_id' => (int)$data['activity_id'],
                 'submitted_code' => $data['submitted_code'],
-                'score' => $data['score'],
-                'is_completed' => $data['is_completed'],
+                'score' => (int)$data['score'],
+                'is_completed' => $isCompletedValue,
                 'completion_status' => $data['completion_status'],
-                'time_spent_minutes' => $data['time_spent_minutes'] ?? 0,
+                'time_spent_minutes' => (int)($data['time_spent_minutes'] ?? 0),
                 'feedback' => $data['feedback'],
-                'attempt_number' => $data['attempt_number'],
+                'attempt_number' => (int)$data['attempt_number'],
                 'validation_results' => is_string($data['validation_results']) ? $data['validation_results'] : json_encode($data['validation_results']),
                 'submitted_at' => now(),
-                'completed_at' => $data['is_completed'] ? now() : null
+                'completed_at' => $isCompletedValue ? now() : null
             ]);
             
             Log::info('✅ SUBMISSION PERSISTED TO DATABASE', [

@@ -8,6 +8,7 @@ use App\Models\ActivityLog;
 use App\Models\ActivityCertificate;
 use App\Models\Lesson;
 use App\Models\User;
+use App\Models\UserProgress;
 use App\Services\TemporaryDatabaseService;
 use App\Services\AiValidationService;
 use Illuminate\Http\Request;
@@ -307,6 +308,17 @@ class ActivityController extends Controller
                 ]);
             } else {
                 Log::info('✅ CONFIRMED: Submission saved to database with ID: ' . $submission['db_id']);
+                
+                // Auto-update lesson progress if activity has lesson_id and course_id
+                if ($activity->lesson_id && $activity->course_id && $aiValidationResult['is_completed']) {
+                    try {
+                        $this->updateLessonProgressForActivity($user->id, $activity->course_id, $activity->lesson_id);
+                    } catch (\Exception $e) {
+                        Log::warning('Could not auto-update lesson progress', [
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
             }
             
             return response()->json([
@@ -2600,6 +2612,70 @@ class ActivityController extends Controller
         $feedback .= "\nPlease make these corrections and try again!";
         
         return $feedback;
+    }
+
+    /**
+     * Update lesson progress when an activity is completed
+     */
+    private function updateLessonProgressForActivity($userId, $courseId, $lessonId)
+    {
+        Log::info('📈 Auto-updating lesson progress after activity completion', [
+            'user_id' => $userId,
+            'course_id' => $courseId,
+            'lesson_id' => $lessonId
+        ]);
+        
+        // Count total activities in this lesson
+        $totalActivities = Activity::where('lesson_id', $lessonId)->count();
+        
+        // Count completed activities by this user for this lesson
+        $completedActivities = ActivitySubmission::where('user_id', $userId)
+            ->whereIn('activity_id', function($query) use ($lessonId) {
+                $query->select('id')
+                    ->from('activities')
+                    ->where('lesson_id', $lessonId);
+            })
+            ->whereRaw('is_completed::int = ?', [1])
+            ->distinct('activity_id')
+            ->count('activity_id');
+        
+        // Calculate progress percentage
+        $percentage = $totalActivities > 0 ? ($completedActivities / $totalActivities) * 100 : 0;
+        
+        Log::info('📊 Calculated lesson progress', [
+            'completed_activities' => $completedActivities,
+            'total_activities' => $totalActivities,
+            'percentage' => $percentage
+        ]);
+        
+        // Update or create progress record
+        $progress = UserProgress::firstOrCreate(
+            [
+                'user_id' => $userId,
+                'course_id' => $courseId,
+                'lesson_id' => $lessonId,
+            ],
+            [
+                'started_at' => now(),
+                'completion_percentage' => 0
+            ]
+        );
+        
+        $progress->completion_percentage = $percentage;
+        
+        // Mark as completed if 100%
+        if ($percentage >= 100) {
+            $progress->is_completed = 1;
+            $progress->completed_at = $progress->completed_at ?? now();
+        }
+        
+        $progress->save();
+        
+        Log::info('✅ Lesson progress updated', [
+            'progress_id' => $progress->id,
+            'percentage' => $percentage,
+            'is_completed' => $progress->is_completed
+        ]);
     }
 }
 
