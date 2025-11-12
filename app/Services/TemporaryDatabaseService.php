@@ -98,6 +98,13 @@ class TemporaryDatabaseService
                 'feedback' => $data['feedback'],
                 'attempt_number' => (int)$data['attempt_number'],
                 'validation_results' => is_string($data['validation_results']) ? $data['validation_results'] : json_encode($data['validation_results']),
+                'instruction_compliance' => json_encode([]),  // Required field, empty array if not provided
+                'generated_output' => null,
+                'error_details' => null,
+                'code_explanation' => null,
+                'explanation_word_count' => 0,
+                'explanation_required' => \DB::raw('FALSE'),
+                'explanation_analysis' => null,
                 'submitted_at' => now(),
                 'completed_at' => $isCompletedValue ? now() : null,
                 'created_at' => now(),
