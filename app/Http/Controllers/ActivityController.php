@@ -319,6 +319,17 @@ class ActivityController extends Controller
                         ]);
                     }
                 }
+                
+                // Award achievement badges
+                if ($aiValidationResult['is_completed']) {
+                    try {
+                        $this->awardAchievementBadges($user->id, $activityId, $aiValidationResult['overall_score'], $attemptNumber);
+                    } catch (\Exception $e) {
+                        Log::warning('Could not award achievement badges', [
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
             }
             
             return response()->json([
@@ -2676,6 +2687,80 @@ class ActivityController extends Controller
             'percentage' => $percentage,
             'is_completed' => $progress->is_completed
         ]);
+    }
+
+    /**
+     * Award achievement badges based on performance
+     */
+    private function awardAchievementBadges($userId, $activityId, $score, $attemptNumber)
+    {
+        $badgesAwarded = [];
+        
+        // Check if this is user's first completed activity
+        $completedCount = ActivitySubmission::where('user_id', $userId)
+            ->whereRaw('is_completed::int = ?', [1])
+            ->distinct('activity_id')
+            ->count('activity_id');
+        
+        if ($completedCount == 1) {
+            ActivityCertificate::firstOrCreate([
+                'user_id' => $userId,
+                'activity_id' => $activityId,
+                'certificate_type' => 'first_completion',
+                'badge_level' => 'bronze'
+            ], [
+                'earned_at' => now()
+            ]);
+            $badgesAwarded[] = 'First Success (Bronze)';
+        }
+        
+        // Perfect score badge
+        if ($score >= 100) {
+            ActivityCertificate::firstOrCreate([
+                'user_id' => $userId,
+                'activity_id' => $activityId,
+                'certificate_type' => 'perfect_score',
+                'badge_level' => 'gold'
+            ], [
+                'earned_at' => now()
+            ]);
+            $badgesAwarded[] = 'Perfect Score (Gold)';
+        }
+        
+        // First attempt success
+        if ($attemptNumber == 1 && $score >= 100) {
+            ActivityCertificate::firstOrCreate([
+                'user_id' => $userId,
+                'activity_id' => $activityId,
+                'certificate_type' => 'first_attempt',
+                'badge_level' => 'silver'
+            ], [
+                'earned_at' => now()
+            ]);
+            $badgesAwarded[] = 'First Try Success (Silver)';
+        }
+        
+        // 5 activities milestone
+        if ($completedCount == 5) {
+            // Award to most recent activity
+            ActivityCertificate::firstOrCreate([
+                'user_id' => $userId,
+                'activity_id' => $activityId,
+                'certificate_type' => 'milestone_5',
+                'badge_level' => 'silver'
+            ], [
+                'earned_at' => now()
+            ]);
+            $badgesAwarded[] = 'Dedicated Learner (Silver)';
+        }
+        
+        if (!empty($badgesAwarded)) {
+            Log::info('🏆 Badges awarded', [
+                'user_id' => $userId,
+                'activity_id' => $activityId,
+                'badges' => $badgesAwarded
+            ]);
+        }
     }
 }
 
