@@ -53,7 +53,9 @@ class FileUploadController extends Controller
 
             // Get full URL for the uploaded file
             $storageUrl = Storage::url($path);
-            $fullUrl = config('app.url') . $storageUrl;
+            // Ensure no double slashes in the URL
+            $baseUrl = rtrim(config('app.url'), '/');
+            $fullUrl = $baseUrl . $storageUrl;
             
             // Get file info
             $fileInfo = [
@@ -124,7 +126,9 @@ class FileUploadController extends Controller
 
             // Get full URL for the uploaded file
             $storageUrl = Storage::url($path);
-            $fullUrl = config('app.url') . $storageUrl;
+            // Ensure no double slashes in the URL
+            $baseUrl = rtrim(config('app.url'), '/');
+            $fullUrl = $baseUrl . $storageUrl;
             
             // Get file info
             $fileInfo = [
