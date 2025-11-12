@@ -30,12 +30,12 @@ class DashboardController extends Controller
 
             // Get total points from activity submissions
             $totalPoints = ActivitySubmission::where('user_id', $userId)
-                ->where('is_completed', 1)
+                ->whereRaw('is_completed::int = ?', [1])
                 ->sum('score') ?? 0;
 
             // Calculate streak (simplified - days with activity)
             $recentActivity = ActivitySubmission::where('user_id', $userId)
-                ->where('is_completed', 1)
+                ->whereRaw('is_completed::int = ?', [1])
                 ->orderBy('completed_at', 'desc')
                 ->pluck('completed_at')
                 ->map(function($date) {
@@ -58,7 +58,7 @@ class DashboardController extends Controller
             $rank = DB::table('users')
                 ->join('activity_submissions', 'users.id', '=', 'activity_submissions.user_id')
                 ->select('users.id', DB::raw('SUM(activity_submissions.score) as total_score'))
-                ->where('activity_submissions.is_completed', 1)
+                ->whereRaw('activity_submissions.is_completed::int = ?', [1])
                 ->groupBy('users.id')
                 ->havingRaw('SUM(activity_submissions.score) > ?', [$totalPoints])
                 ->count() + 1;
@@ -103,13 +103,13 @@ class DashboardController extends Controller
 
             // Get average score
             $averageScore = ActivitySubmission::where('user_id', $userId)
-                ->where('is_completed', 1)
+                ->whereRaw('is_completed::int = ?', [1])
                 ->avg('score');
             $averageScore = $averageScore ? round($averageScore, 0) : 0;
 
             // Get projects completed (count of completed activities)
             $projectsCompleted = ActivitySubmission::where('user_id', $userId)
-                ->where('is_completed', 1)
+                ->whereRaw('is_completed::int = ?', [1])
                 ->distinct('activity_id')
                 ->count('activity_id');
 
@@ -142,7 +142,7 @@ class DashboardController extends Controller
 
             // Calculate points gained this week
             $pointsThisWeek = ActivitySubmission::where('user_id', $userId)
-                ->where('is_completed', 1)
+                ->whereRaw('is_completed::int = ?', [1])
                 ->where('completed_at', '>=', \Carbon\Carbon::now()->startOfWeek())
                 ->sum('score');
 
