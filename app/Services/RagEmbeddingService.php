@@ -10,10 +10,17 @@ use Illuminate\Support\Facades\Cache;
 class RagEmbeddingService
 {
     private NebiusClient $nebiusClient;
+    private bool $ragEnabled;
 
     public function __construct(NebiusClient $nebiusClient)
     {
         $this->nebiusClient = $nebiusClient;
+        $this->ragEnabled = filter_var(env('AURABOT_RAG_ENABLED', false), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function isEnabled(): bool
+    {
+        return $this->ragEnabled;
     }
 
     /**
@@ -21,6 +28,11 @@ class RagEmbeddingService
      */
     public function generateEmbedding(string $text, string $model = 'BAAI/bge-multilingual-gemma2'): array
     {
+        if (!$this->ragEnabled) {
+            Log::info('RAG disabled - returning mock embedding', ['text_length' => strlen($text)]);
+            return $this->generateMockEmbedding($text);
+        }
+
         $textHash = hash('sha256', $text);
 
         // Check cache first
@@ -71,7 +83,7 @@ class RagEmbeddingService
                 'error' => $e->getMessage(),
                 'text_length' => strlen($text)
             ]);
-            throw $e;
+            return $this->generateMockEmbedding($text);
         }
     }
 
@@ -129,6 +141,11 @@ class RagEmbeddingService
         string $documentType = 'text',
         array $metadata = []
     ): int {
+        if (!$this->ragEnabled) {
+            Log::info('RAG disabled - skipping document ingestion', ['source' => $source]);
+            return 0;
+        }
+
         $chunks = $this->chunkText($content);
         $insertedCount = 0;
 
@@ -190,6 +207,11 @@ class RagEmbeddingService
         float $threshold = 0.7,
         array $documentTypes = []
     ): \Illuminate\Support\Collection {
+        if (!$this->ragEnabled) {
+            Log::info('RAG disabled - skipping document search');
+            return collect([]);
+        }
+
         $limit = $limit ?? env('RAG_MAX_CHUNKS', 5);
         
         // Create cache key for search results
@@ -248,6 +270,30 @@ class RagEmbeddingService
         Log::info('Embedding cache cleanup', ['deleted_entries' => $deleted]);
 
         return $deleted;
+    }
+
+    /**
+     * Generate deterministic mock embedding so AuraBot can operate without Nebius
+     */
+    private function generateMockEmbedding(string $text): array
+    {
+        $dimensions = (int) env('VECTOR_DIM', 256);
+        $hash = md5($text);
+        $seed = hexdec(substr($hash, 0, 8));
+        mt_srand($seed);
+
+        $embedding = [];
+        for ($i = 0; $i < $dimensions; $i++) {
+            $embedding[] = (mt_rand(0, 2000) / 1000) - 1; // [-1,1]
+        }
+
+        // Normalize vector
+        $magnitude = sqrt(array_sum(array_map(fn($x) => $x * $x, $embedding)));
+        if ($magnitude > 0) {
+            $embedding = array_map(fn($x) => $x / $magnitude, $embedding);
+        }
+
+        return $embedding;
     }
 }
 

@@ -57,18 +57,22 @@ class AuraBotRagService
             $conversationHistory = ChatbotConversation::getRecentContext($sessionId, 5);
 
             // Search for relevant documents with error handling
-            try {
-                $relevantDocs = $this->embeddingService->searchRelevantDocuments(
-                    $question,
-                    env('RAG_MAX_CHUNKS', 5),
-                    0.7,
-                    ['html', 'lesson', 'activity', 'tutorial']
-                );
-            } catch (\Exception $e) {
-                Log::warning('RAG search failed, continuing without context', [
-                    'error' => $e->getMessage(),
-                    'session_id' => $sessionId
-                ]);
+            if ($this->embeddingService->isEnabled()) {
+                try {
+                    $relevantDocs = $this->embeddingService->searchRelevantDocuments(
+                        $question,
+                        env('RAG_MAX_CHUNKS', 5),
+                        0.7,
+                        ['html', 'lesson', 'activity', 'tutorial']
+                    );
+                } catch (\Exception $e) {
+                    Log::warning('RAG search failed, continuing without context', [
+                        'error' => $e->getMessage(),
+                        'session_id' => $sessionId
+                    ]);
+                    $relevantDocs = collect([]);
+                }
+            } else {
                 $relevantDocs = collect([]);
             }
 
