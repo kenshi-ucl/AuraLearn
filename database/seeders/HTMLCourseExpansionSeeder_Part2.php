@@ -239,7 +239,7 @@ class HTMLCourseExpansionSeeder_Part2 extends Seeder
     <p>Document stores like MongoDB.</p>
 </body>
 </html>',
-            'instructions' => 'Create a well-structured document with:
+            'hints' => 'Create a well-structured document with:
 1. One h1 as the main title
 2. Multiple h2 sections
 3. h3 subsections under each h2
@@ -276,7 +276,8 @@ class HTMLCourseExpansionSeeder_Part2 extends Seeder
 <li>Examples or API Reference</li>
 <li>Troubleshooting or FAQ</li>
 </ul>',
-            'initial_code' => '<!DOCTYPE html>
+            'metadata' => [
+                'initial_code' => '<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Documentation</title>
@@ -286,7 +287,7 @@ class HTMLCourseExpansionSeeder_Part2 extends Seeder
     
 </body>
 </html>',
-            'solution_code' => '<!DOCTYPE html>
+                'solution_code' => '<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Python Programming Language Documentation</title>
@@ -353,55 +354,56 @@ class HTMLCourseExpansionSeeder_Part2 extends Seeder
     <p>Resources for learning and problem-solving.</p>
 </body>
 </html>',
-            'test_cases' => [
-                [
-                    'description' => 'Has exactly one h1',
-                    'test_type' => 'count',
-                    'expected' => '<h1',
-                    'exact_count' => 1,
-                    'points' => 15
+                'validation_criteria' => [
+                    [
+                        'description' => 'Has exactly one h1',
+                        'test_type' => 'count',
+                        'expected' => '<h1',
+                        'exact_count' => 1,
+                        'points' => 15
+                    ],
+                    [
+                        'description' => 'Has multiple h2 sections',
+                        'test_type' => 'count',
+                        'expected' => '<h2',
+                        'min_count' => 3,
+                        'points' => 15
+                    ],
+                    [
+                        'description' => 'Has h3 subsections',
+                        'test_type' => 'count',
+                        'expected' => '<h3',
+                        'min_count' => 4,
+                        'points' => 20
+                    ],
+                    [
+                        'description' => 'Includes h4 elements',
+                        'test_type' => 'count',
+                        'expected' => '<h4',
+                        'min_count' => 2,
+                        'points' => 15
+                    ],
+                    [
+                        'description' => 'Proper hierarchy maintained',
+                        'test_type' => 'heading_hierarchy',
+                        'expected' => true,
+                        'points' => 25
+                    ],
+                    [
+                        'description' => 'Has descriptive content',
+                        'test_type' => 'count',
+                        'expected' => '<p',
+                        'min_count' => 5,
+                        'points' => 10
+                    ]
                 ],
-                [
-                    'description' => 'Has multiple h2 sections',
-                    'test_type' => 'count',
-                    'expected' => '<h2',
-                    'min_count' => 3,
-                    'points' => 15
-                ],
-                [
-                    'description' => 'Has h3 subsections',
-                    'test_type' => 'count',
-                    'expected' => '<h3',
-                    'min_count' => 4,
-                    'points' => 20
-                ],
-                [
-                    'description' => 'Includes h4 elements',
-                    'test_type' => 'count',
-                    'expected' => '<h4',
-                    'min_count' => 2,
-                    'points' => 15
-                ],
-                [
-                    'description' => 'Proper hierarchy maintained',
-                    'test_type' => 'heading_hierarchy',
-                    'expected' => true,
-                    'points' => 25
-                ],
-                [
-                    'description' => 'Has descriptive content',
-                    'test_type' => 'count',
-                    'expected' => '<p',
-                    'min_count' => 5,
-                    'points' => 10
+                'hints' => [
+                    'Start with a single h1 for the main title',
+                    'Use h2 for major sections like Introduction, Installation, etc.',
+                    'Add h3 for subsections within each major section',
+                    'Use h4 for specific details or subcategories',
+                    'Make sure not to skip levels (e.g., h2 to h4)'
                 ]
-            ],
-            'hints' => [
-                'Start with a single h1 for the main title',
-                'Use h2 for major sections like Introduction, Installation, etc.',
-                'Add h3 for subsections within each major section',
-                'Use h4 for specific details or subcategories',
-                'Make sure not to skip levels (e.g., h2 to h4)'
             ],
             'difficulty' => 'intermediate',
             'points' => 100,
@@ -659,7 +661,7 @@ greet("World")
     <p>The preformatted text preserves the code indentation, which is crucial for Python.</p>
 </body>
 </html>',
-            'instructions' => 'Create a page that demonstrates different text formatting:
+            'hints' => 'Create a page that demonstrates different text formatting:
 1. Multiple regular paragraphs
 2. Use of horizontal rules to separate sections
 3. An address or contact info with line breaks
@@ -674,7 +676,7 @@ greet("World")
             'title' => 'Create a Blog Post Layout',
             'description' => 'Build a blog post with proper paragraph formatting and text structure',
             'activity_type' => 'coding',
-            'instructions' => '<h3>Create a Blog Post</h3>
+            'hints' => '<h3>Create a Blog Post</h3>
 <p>Build a complete blog post demonstrating mastery of text formatting elements.</p>
 
 <h3>Requirements</h3>
@@ -1090,7 +1092,7 @@ greet("World")
     </p>
 </body>
 </html>',
-            'instructions' => 'Apply various inline styles to create an attractive page:
+            'hints' => 'Apply various inline styles to create an attractive page:
 1. Set a light background color for the body
 2. Style the h1 with color, center alignment, and custom font
 3. Give the first paragraph justified alignment and custom margins
@@ -1106,7 +1108,7 @@ greet("World")
             'title' => 'Create a Styled Business Card',
             'description' => 'Design a digital business card using inline styles',
             'activity_type' => 'coding',
-            'instructions' => '<h3>Design a Digital Business Card</h3>
+            'hints' => '<h3>Design a Digital Business Card</h3>
 <p>Create a professional-looking business card using only HTML and inline styles.</p>
 
 <h3>Requirements</h3>
@@ -1506,7 +1508,7 @@ The &lt;mark&gt;HTML&lt;/mark&gt; standard defines web structure.&lt;/p&gt;</cod
     <p><small>Copyright<sup>©</sup> 2024. All rights reserved.</small></p>
 </body>
 </html>',
-            'instructions' => 'Apply appropriate formatting elements:
+            'hints' => 'Apply appropriate formatting elements:
 1. Use bold and strong appropriately
 2. Add italic and emphasized text
 3. Include subscript for chemical formulas
@@ -1523,7 +1525,7 @@ The &lt;mark&gt;HTML&lt;/mark&gt; standard defines web structure.&lt;/p&gt;</cod
             'title' => 'Create a Scientific Article',
             'description' => 'Build a scientific article demonstrating all text formatting elements',
             'activity_type' => 'coding',
-            'instructions' => '<h3>Create a Scientific Article</h3>
+            'hints' => '<h3>Create a Scientific Article</h3>
 <p>Write a short scientific article that uses all the HTML formatting elements appropriately.</p>
 
 <h3>Requirements</h3>

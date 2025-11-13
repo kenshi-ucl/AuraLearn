@@ -168,7 +168,8 @@ class HTMLCourseExpansionSeeder extends Seeder
             'title' => 'Complete HTML Template',
             'description' => 'A full HTML template you can use as a starting point',
             'language' => 'html',
-            'initial_code' => '<!DOCTYPE html>
+            'metadata' => [
+                'initial_code' => '<!DOCTYPE html>
 <html>
 <head>
     <title>My Web Page</title>
@@ -191,7 +192,7 @@ class HTMLCourseExpansionSeeder extends Seeder
     <p>I enjoy coding and creating websites.</p>
 </body>
 </html>',
-            'instructions' => 'Modify this template to create your own web page. Try adding:
+            'hints' => 'Modify this template to create your own web page. Try adding:
 - A more descriptive title
 - Additional headings using <h2> tags
 - More paragraphs about yourself
@@ -222,7 +223,8 @@ class HTMLCourseExpansionSeeder extends Seeder
 <li>Use semantic heading hierarchy (h1 for main title, h2 for sections, etc.)</li>
 <li>Write meaningful content (at least 50 words total)</li>
 </ul>',
-            'initial_code' => '<!DOCTYPE html>
+            'metadata' => [
+                'initial_code' => '<!DOCTYPE html>
 <html>
 <head>
     <!-- Add your page title here -->
@@ -232,7 +234,7 @@ class HTMLCourseExpansionSeeder extends Seeder
     
 </body>
 </html>',
-            'solution_code' => '<!DOCTYPE html>
+                'solution_code' => '<!DOCTYPE html>
 <html>
 <head>
     <title>About John Doe - Personal Portfolio</title>
@@ -253,50 +255,51 @@ class HTMLCourseExpansionSeeder extends Seeder
     <p>My goal is to become a full-stack web developer and create applications that solve real-world problems. I believe that technology can make the world a better place, and I want to be part of that change.</p>
 </body>
 </html>',
-            'test_cases' => [
-                [
-                    'description' => 'DOCTYPE declaration present',
-                    'test_type' => 'contains',
-                    'expected' => '<!DOCTYPE html>',
-                    'points' => 10
+                'validation_criteria' => [
+                    [
+                        'description' => 'DOCTYPE declaration present',
+                        'test_type' => 'contains',
+                        'expected' => '<!DOCTYPE html>',
+                        'points' => 10
+                    ],
+                    [
+                        'description' => 'Has title tag in head',
+                        'test_type' => 'regex',
+                        'expected' => '<head>.*?<title>.*?</title>.*?</head>',
+                        'points' => 15
+                    ],
+                    [
+                        'description' => 'Contains h1 heading',
+                        'test_type' => 'regex',
+                        'expected' => '<h1>.*?</h1>',
+                        'points' => 15
+                    ],
+                    [
+                        'description' => 'Contains h2 headings',
+                        'test_type' => 'regex',
+                        'expected' => '<h2>.*?</h2>',
+                        'points' => 15
+                    ],
+                    [
+                        'description' => 'Contains at least 3 paragraphs',
+                        'test_type' => 'count',
+                        'expected' => '<p>',
+                        'min_count' => 3,
+                        'points' => 20
+                    ],
+                    [
+                        'description' => 'Proper HTML structure',
+                        'test_type' => 'structure',
+                        'expected' => 'html,head,body',
+                        'points' => 25
+                    ]
                 ],
-                [
-                    'description' => 'Has title tag in head',
-                    'test_type' => 'regex',
-                    'expected' => '<head>.*?<title>.*?</title>.*?</head>',
-                    'points' => 15
-                ],
-                [
-                    'description' => 'Contains h1 heading',
-                    'test_type' => 'regex',
-                    'expected' => '<h1>.*?</h1>',
-                    'points' => 15
-                ],
-                [
-                    'description' => 'Contains h2 headings',
-                    'test_type' => 'regex',
-                    'expected' => '<h2>.*?</h2>',
-                    'points' => 15
-                ],
-                [
-                    'description' => 'Contains at least 3 paragraphs',
-                    'test_type' => 'count',
-                    'expected' => '<p>',
-                    'min_count' => 3,
-                    'points' => 20
-                ],
-                [
-                    'description' => 'Proper HTML structure',
-                    'test_type' => 'structure',
-                    'expected' => 'html,head,body',
-                    'points' => 25
+                'hints' => [
+                    'Remember to include the DOCTYPE declaration at the very beginning',
+                    'The title tag goes inside the head section',
+                    'Use h1 for your main heading, h2 for sections, and h3 for subsections',
+                    'Each paragraph should be wrapped in <p> tags'
                 ]
-            ],
-            'hints' => [
-                'Remember to include the DOCTYPE declaration at the very beginning',
-                'The title tag goes inside the head section',
-                'Use h1 for your main heading, h2 for sections, and h3 for subsections',
-                'Each paragraph should be wrapped in <p> tags'
             ],
             'difficulty' => 'beginner',
             'points' => 100,
@@ -520,7 +523,8 @@ class HTMLCourseExpansionSeeder extends Seeder
             'title' => 'Complete HTML Page Example',
             'description' => 'A full HTML page demonstrating all basic elements',
             'language' => 'html',
-            'initial_code' => '<!DOCTYPE html>
+            'metadata' => [
+                'initial_code' => '<!DOCTYPE html>
 <html>
 <head>
     <title>Page Title</title>
@@ -557,7 +561,7 @@ class HTMLCourseExpansionSeeder extends Seeder
     <p>Thanks for visiting my page!</p>
 </body>
 </html>',
-            'instructions' => 'Create a complete HTML page that includes:
+            'hints' => 'Create a complete HTML page that includes:
 1. A proper DOCTYPE and HTML structure
 2. A meaningful page title
 3. Multiple headings (h1, h2, h3)
@@ -594,7 +598,8 @@ class HTMLCourseExpansionSeeder extends Seeder
 <li>Include cooking time and servings</li>
 <li>Add links to ingredient suppliers</li>
 </ul>',
-            'initial_code' => '<!DOCTYPE html>
+            'metadata' => [
+                'initial_code' => '<!DOCTYPE html>
 <html>
 <head>
     <!-- Add your recipe title here -->
@@ -604,7 +609,7 @@ class HTMLCourseExpansionSeeder extends Seeder
     
 </body>
 </html>',
-            'solution_code' => '<!DOCTYPE html>
+                'solution_code' => '<!DOCTYPE html>
 <html>
 <head>
     <title>Classic Chocolate Chip Cookies Recipe</title>
@@ -664,58 +669,59 @@ class HTMLCourseExpansionSeeder extends Seeder
     <p>Want more delicious recipes? Check out <a href="https://www.allrecipes.com">AllRecipes</a> for inspiration!</p>
 </body>
 </html>',
-            'test_cases' => [
-                [
-                    'description' => 'Has proper DOCTYPE',
-                    'test_type' => 'contains',
-                    'expected' => '<!DOCTYPE html>',
-                    'points' => 10
+                'validation_criteria' => [
+                    [
+                        'description' => 'Has proper DOCTYPE',
+                        'test_type' => 'contains',
+                        'expected' => '<!DOCTYPE html>',
+                        'points' => 10
+                    ],
+                    [
+                        'description' => 'Has title in head',
+                        'test_type' => 'regex',
+                        'expected' => '<head>.*?<title>.*?recipe.*?</title>.*?</head>',
+                        'points' => 10
+                    ],
+                    [
+                        'description' => 'Contains h1 heading',
+                        'test_type' => 'regex',
+                        'expected' => '<h1>.*?</h1>',
+                        'points' => 10
+                    ],
+                    [
+                        'description' => 'Contains h2 headings for sections',
+                        'test_type' => 'count',
+                        'expected' => '<h2>',
+                        'min_count' => 2,
+                        'points' => 15
+                    ],
+                    [
+                        'description' => 'Contains paragraphs',
+                        'test_type' => 'count',
+                        'expected' => '<p>',
+                        'min_count' => 3,
+                        'points' => 15
+                    ],
+                    [
+                        'description' => 'Contains at least one image',
+                        'test_type' => 'regex',
+                        'expected' => '<img[^>]+src=.*?alt=.*?>',
+                        'points' => 20
+                    ],
+                    [
+                        'description' => 'Contains at least one link',
+                        'test_type' => 'regex',
+                        'expected' => '<a[^>]+href=.*?>.*?</a>',
+                        'points' => 20
+                    ]
                 ],
-                [
-                    'description' => 'Has title in head',
-                    'test_type' => 'regex',
-                    'expected' => '<head>.*?<title>.*?recipe.*?</title>.*?</head>',
-                    'points' => 10
-                ],
-                [
-                    'description' => 'Contains h1 heading',
-                    'test_type' => 'regex',
-                    'expected' => '<h1>.*?</h1>',
-                    'points' => 10
-                ],
-                [
-                    'description' => 'Contains h2 headings for sections',
-                    'test_type' => 'count',
-                    'expected' => '<h2>',
-                    'min_count' => 2,
-                    'points' => 15
-                ],
-                [
-                    'description' => 'Contains paragraphs',
-                    'test_type' => 'count',
-                    'expected' => '<p>',
-                    'min_count' => 3,
-                    'points' => 15
-                ],
-                [
-                    'description' => 'Contains at least one image',
-                    'test_type' => 'regex',
-                    'expected' => '<img[^>]+src=.*?alt=.*?>',
-                    'points' => 20
-                ],
-                [
-                    'description' => 'Contains at least one link',
-                    'test_type' => 'regex',
-                    'expected' => '<a[^>]+href=.*?>.*?</a>',
-                    'points' => 20
+                'hints' => [
+                    'Start with the basic HTML structure',
+                    'Use h1 for the recipe name',
+                    'Use h2 for major sections like Ingredients and Instructions',
+                    'Don\'t forget the alt attribute for images',
+                    'Make sure your links have href attributes'
                 ]
-            ],
-            'hints' => [
-                'Start with the basic HTML structure',
-                'Use h1 for the recipe name',
-                'Use h2 for major sections like Ingredients and Instructions',
-                'Don\'t forget the alt attribute for images',
-                'Make sure your links have href attributes'
             ],
             'difficulty' => 'beginner',
             'points' => 100,
@@ -970,7 +976,8 @@ class HTMLCourseExpansionSeeder extends Seeder
             'title' => 'HTML Elements Practice',
             'description' => 'Practice creating properly nested HTML elements',
             'language' => 'html',
-            'initial_code' => '<!DOCTYPE html>
+            'metadata' => [
+                'initial_code' => '<!DOCTYPE html>
 <html>
 <body>
     <!-- Create a properly nested structure here -->
@@ -1000,7 +1007,7 @@ class HTMLCourseExpansionSeeder extends Seeder
     </div>
 </body>
 </html>',
-            'instructions' => 'Create a properly structured HTML document that demonstrates:
+            'hints' => 'Create a properly structured HTML document that demonstrates:
 1. Nested elements (divs containing other elements)
 2. Proper opening and closing tags
 3. At least one empty element (br, hr, or img)
@@ -1036,7 +1043,8 @@ class HTMLCourseExpansionSeeder extends Seeder
 <li>Dropdown submenus (nested lists)</li>
 <li>Proper use of semantic elements</li>
 </ul>',
-            'initial_code' => '<!DOCTYPE html>
+            'metadata' => [
+                'initial_code' => '<!DOCTYPE html>
 <html>
 <head>
     <title>Navigation Menu</title>
@@ -1046,7 +1054,7 @@ class HTMLCourseExpansionSeeder extends Seeder
     
 </body>
 </html>',
-            'solution_code' => '<!DOCTYPE html>
+                'solution_code' => '<!DOCTYPE html>
 <html>
 <head>
     <title>Navigation Menu</title>
@@ -1095,58 +1103,59 @@ class HTMLCourseExpansionSeeder extends Seeder
     </nav>
 </body>
 </html>',
-            'test_cases' => [
-                [
-                    'description' => 'Has proper DOCTYPE',
-                    'test_type' => 'contains',
-                    'expected' => '<!DOCTYPE html>',
-                    'points' => 10
+                'validation_criteria' => [
+                    [
+                        'description' => 'Has proper DOCTYPE',
+                        'test_type' => 'contains',
+                        'expected' => '<!DOCTYPE html>',
+                        'points' => 10
+                    ],
+                    [
+                        'description' => 'Contains nav element',
+                        'test_type' => 'regex',
+                        'expected' => '<nav>.*?</nav>',
+                        'points' => 15
+                    ],
+                    [
+                        'description' => 'Has nested structure (3+ levels)',
+                        'test_type' => 'structure_depth',
+                        'expected' => '3',
+                        'points' => 20
+                    ],
+                    [
+                        'description' => 'Contains unordered list',
+                        'test_type' => 'regex',
+                        'expected' => '<ul>.*?</ul>',
+                        'points' => 15
+                    ],
+                    [
+                        'description' => 'Contains list items',
+                        'test_type' => 'count',
+                        'expected' => '<li>',
+                        'min_count' => 4,
+                        'points' => 15
+                    ],
+                    [
+                        'description' => 'Contains empty elements',
+                        'test_type' => 'count_any',
+                        'expected' => ['<br>', '<hr>', '<img'],
+                        'min_count' => 2,
+                        'points' => 15
+                    ],
+                    [
+                        'description' => 'All tags are lowercase',
+                        'test_type' => 'no_uppercase_tags',
+                        'expected' => true,
+                        'points' => 10
+                    ]
                 ],
-                [
-                    'description' => 'Contains nav element',
-                    'test_type' => 'regex',
-                    'expected' => '<nav>.*?</nav>',
-                    'points' => 15
-                ],
-                [
-                    'description' => 'Has nested structure (3+ levels)',
-                    'test_type' => 'structure_depth',
-                    'expected' => '3',
-                    'points' => 20
-                ],
-                [
-                    'description' => 'Contains unordered list',
-                    'test_type' => 'regex',
-                    'expected' => '<ul>.*?</ul>',
-                    'points' => 15
-                ],
-                [
-                    'description' => 'Contains list items',
-                    'test_type' => 'count',
-                    'expected' => '<li>',
-                    'min_count' => 4,
-                    'points' => 15
-                ],
-                [
-                    'description' => 'Contains empty elements',
-                    'test_type' => 'count_any',
-                    'expected' => ['<br>', '<hr>', '<img'],
-                    'min_count' => 2,
-                    'points' => 15
-                ],
-                [
-                    'description' => 'All tags are lowercase',
-                    'test_type' => 'no_uppercase_tags',
-                    'expected' => true,
-                    'points' => 10
+                'hints' => [
+                    'Start with a nav element as your main container',
+                    'Use ul and li elements for menu items',
+                    'Nest ul elements inside li elements for submenus',
+                    'Remember to include empty elements like hr or br',
+                    'Check that all your tags are lowercase'
                 ]
-            ],
-            'hints' => [
-                'Start with a nav element as your main container',
-                'Use ul and li elements for menu items',
-                'Nest ul elements inside li elements for submenus',
-                'Remember to include empty elements like hr or br',
-                'Check that all your tags are lowercase'
             ],
             'difficulty' => 'beginner',
             'points' => 100,
@@ -1438,7 +1447,8 @@ class HTMLCourseExpansionSeeder extends Seeder
             'title' => 'Complete Attribute Example',
             'description' => 'Practice using various HTML attributes',
             'language' => 'html',
-            'initial_code' => '<!DOCTYPE html>
+            'metadata' => [
+                'initial_code' => '<!DOCTYPE html>
 <html>
 <head>
     <title>Attribute Practice</title>
@@ -1478,7 +1488,7 @@ class HTMLCourseExpansionSeeder extends Seeder
     </div>
 </body>
 </html>',
-            'instructions' => 'Add appropriate attributes to make this page functional and accessible:
+            'hints' => 'Add appropriate attributes to make this page functional and accessible:
 1. Add lang attribute to html element
 2. Add id and class attributes to the h1
 3. Add href, target, and rel attributes to the blog link
@@ -1517,7 +1527,8 @@ class HTMLCourseExpansionSeeder extends Seeder
 <li>Download link for a resource</li>
 <li>Inline styles on at least 2 elements</li>
 </ul>',
-            'initial_code' => '<!DOCTYPE html>
+            'metadata' => [
+                'initial_code' => '<!DOCTYPE html>
 <html>
 <head>
     <title>Photo Gallery</title>
@@ -1527,7 +1538,7 @@ class HTMLCourseExpansionSeeder extends Seeder
     
 </body>
 </html>',
-            'solution_code' => '<!DOCTYPE html>
+                'solution_code' => '<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Nature Photography Gallery</title>
@@ -1569,64 +1580,65 @@ class HTMLCourseExpansionSeeder extends Seeder
     </footer>
 </body>
 </html>',
-            'test_cases' => [
-                [
-                    'description' => 'HTML has lang attribute',
-                    'test_type' => 'regex',
-                    'expected' => '<html[^>]+lang=',
-                    'points' => 10
+                'validation_criteria' => [
+                    [
+                        'description' => 'HTML has lang attribute',
+                        'test_type' => 'regex',
+                        'expected' => '<html[^>]+lang=',
+                        'points' => 10
+                    ],
+                    [
+                        'description' => 'Contains at least 4 images with alt text',
+                        'test_type' => 'count',
+                        'expected' => '<img[^>]+alt=',
+                        'min_count' => 4,
+                        'points' => 20
+                    ],
+                    [
+                        'description' => 'Images have width and height',
+                        'test_type' => 'regex',
+                        'expected' => '<img[^>]+width=[^>]+height=',
+                        'points' => 15
+                    ],
+                    [
+                        'description' => 'Contains mailto link',
+                        'test_type' => 'regex',
+                        'expected' => 'href="mailto:',
+                        'points' => 10
+                    ],
+                    [
+                        'description' => 'Has external links with target="_blank"',
+                        'test_type' => 'regex',
+                        'expected' => 'target="_blank"',
+                        'points' => 10
+                    ],
+                    [
+                        'description' => 'Uses rel="noopener" for security',
+                        'test_type' => 'regex',
+                        'expected' => 'rel="noopener"',
+                        'points' => 10
+                    ],
+                    [
+                        'description' => 'Contains download link',
+                        'test_type' => 'regex',
+                        'expected' => 'download',
+                        'points' => 10
+                    ],
+                    [
+                        'description' => 'Uses id attributes',
+                        'test_type' => 'count',
+                        'expected' => ' id="',
+                        'min_count' => 3,
+                        'points' => 15
+                    ]
                 ],
-                [
-                    'description' => 'Contains at least 4 images with alt text',
-                    'test_type' => 'count',
-                    'expected' => '<img[^>]+alt=',
-                    'min_count' => 4,
-                    'points' => 20
-                ],
-                [
-                    'description' => 'Images have width and height',
-                    'test_type' => 'regex',
-                    'expected' => '<img[^>]+width=[^>]+height=',
-                    'points' => 15
-                ],
-                [
-                    'description' => 'Contains mailto link',
-                    'test_type' => 'regex',
-                    'expected' => 'href="mailto:',
-                    'points' => 10
-                ],
-                [
-                    'description' => 'Has external links with target="_blank"',
-                    'test_type' => 'regex',
-                    'expected' => 'target="_blank"',
-                    'points' => 10
-                ],
-                [
-                    'description' => 'Uses rel="noopener" for security',
-                    'test_type' => 'regex',
-                    'expected' => 'rel="noopener"',
-                    'points' => 10
-                ],
-                [
-                    'description' => 'Contains download link',
-                    'test_type' => 'regex',
-                    'expected' => 'download',
-                    'points' => 10
-                ],
-                [
-                    'description' => 'Uses id attributes',
-                    'test_type' => 'count',
-                    'expected' => ' id="',
-                    'min_count' => 3,
-                    'points' => 15
+                'hints' => [
+                    'Don\'t forget the lang attribute on the html element',
+                    'Every image needs an alt attribute for accessibility',
+                    'Use target="_blank" with rel="noopener" for external links',
+                    'The download attribute forces file download',
+                    'Use descriptive alt text for images'
                 ]
-            ],
-            'hints' => [
-                'Don\'t forget the lang attribute on the html element',
-                'Every image needs an alt attribute for accessibility',
-                'Use target="_blank" with rel="noopener" for external links',
-                'The download attribute forces file download',
-                'Use descriptive alt text for images'
             ],
             'difficulty' => 'intermediate',
             'points' => 100,

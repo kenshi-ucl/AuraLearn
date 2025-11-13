@@ -265,6 +265,45 @@ Route::get('debug/auth-check', function (Request $request) {
     ]);
 });
 
+// Debug route to check user and test progress
+Route::get('debug/check-user/{userId}', function (Request $request, $userId) {
+    $user = \App\Models\User::find($userId);
+    $course = \App\Models\Course::first();
+    $lesson = \App\Models\Lesson::first();
+    
+    // Test creating progress entry
+    $testProgress = null;
+    $error = null;
+    
+    if ($user && $course && $lesson) {
+        try {
+            $testProgress = \App\Models\UserProgress::create([
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+                'lesson_id' => $lesson->id,
+                'started_at' => now(),
+                'completion_percentage' => 0,
+                'is_completed' => 0,
+            ]);
+        } catch (\Exception $e) {
+            $error = $e->getMessage();
+        }
+    }
+    
+    return response()->json([
+        'user_exists' => $user ? true : false,
+        'user' => $user,
+        'users_count' => \App\Models\User::count(),
+        'all_user_ids' => \App\Models\User::pluck('id'),
+        'course' => $course,
+        'lesson' => $lesson,
+        'test_progress_created' => $testProgress ? true : false,
+        'test_progress' => $testProgress,
+        'error' => $error,
+        'db_connection' => config('database.default'),
+    ]);
+});
+
 // Course-specific achievements
 Route::get('courses/{courseId}/achievements', [AchievementController::class, 'courseAchievements']);
 
