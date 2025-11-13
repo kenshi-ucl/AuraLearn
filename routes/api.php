@@ -5,7 +5,6 @@ use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminUserController;
-use App\Http\Controllers\AdminDebugController;
 use App\Http\Controllers\UserAuthController;
 use App\Http\Controllers\UserSettingsController;
 use App\Http\Controllers\FileUploadController;
@@ -42,7 +41,6 @@ Route::post('test-upload/video', [FileUploadController::class, 'uploadVideo']);
 
 Route::prefix('admin')->middleware('admin_api')->group(function () {
     Route::post('login', [AdminAuthController::class, 'login']);
-    Route::get('debug-session', [AdminDebugController::class, 'debugSession']);
 
     Route::middleware('auth:admin')->group(function () {
         Route::get('me', [AdminAuthController::class, 'me']);
