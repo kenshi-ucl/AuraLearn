@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserProgress;
 use App\Services\TemporaryDatabaseService;
 use App\Services\AiValidationService;
+use App\Services\ActivityRequirementValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
@@ -20,10 +21,14 @@ use Illuminate\Support\Facades\Log;
 class ActivityController extends Controller
 {
     private AiValidationService $aiValidationService;
+    private ActivityRequirementValidator $activityRequirementValidator;
 
-    public function __construct(AiValidationService $aiValidationService)
-    {
+    public function __construct(
+        AiValidationService $aiValidationService,
+        ActivityRequirementValidator $activityRequirementValidator
+    ) {
         $this->aiValidationService = $aiValidationService;
+        $this->activityRequirementValidator = $activityRequirementValidator;
     }
     /**
      * Display a listing of activities for a lesson
@@ -190,43 +195,65 @@ class ActivityController extends Controller
             // Get the activity details from database
             $activity = Activity::findOrFail($activityId);
             
-            // Parse instructions for AI validation
+            // Parse instructions for validation
             $instructions = explode("\n", $activity->instructions);
             $instructions = array_filter(array_map('trim', $instructions), function($instruction) {
                 return !empty($instruction) && !preg_match('/^\d+\.\s*$/', $instruction);
             });
 
-            // 🤖 AI-POWERED VALIDATION - The main event!
-            try {
-                $aiValidationResult = $this->aiValidationService->validateCodeWithAi(
-                    $userCode, 
-                    $instructions, 
-                    $activity->title, 
-                    $activity->description
-                );
+            // Deterministic validation using metadata
+            $ruleValidation = $this->activityRequirementValidator->validate($activity, $userCode);
+            $usedRuleFallback = false;
+            $aiValidationResult = null;
+            $comprehensiveFeedback = '';
 
-                Log::info('🎯 AI validation completed', [
-                    'ai_powered' => $aiValidationResult['ai_powered'],
-                    'overall_score' => $aiValidationResult['overall_score'],
-                    'completion_status' => $aiValidationResult['completion_status'],
-                    'is_completed' => $aiValidationResult['is_completed']
-                ]);
+            if (($ruleValidation['has_checks'] ?? false) && !$ruleValidation['passed']) {
+                // Fail fast with deterministic feedback
+                $aiValidationResult = $this->activityRequirementValidator->toValidationResult($ruleValidation, $instructions);
+                $comprehensiveFeedback = $this->activityRequirementValidator->generateFeedback($ruleValidation);
+                $usedRuleFallback = true;
+            } else {
+                // 🤖 AI-POWERED VALIDATION - The main event!
+                try {
+                    $aiValidationResult = $this->aiValidationService->validateCodeWithAi(
+                        $userCode, 
+                        $instructions, 
+                        $activity->title, 
+                        $activity->description
+                    );
 
-                // Get comprehensive AI feedback
-                $comprehensiveFeedback = $this->aiValidationService->generateEducationalFeedback($aiValidationResult);
-                
-            } catch (\Exception $aiError) {
-                Log::error('❌ AI validation failed', [
-                    'activity_id' => $activityId,
-                    'error' => $aiError->getMessage(),
-                    'file' => $aiError->getFile(),
-                    'line' => $aiError->getLine()
-                ]);
-                
-                return response()->json([
-                    'message' => 'AI validation is currently unavailable. Please try again in a moment.',
-                    'error' => $aiError->getMessage()
-                ], 503);
+                    Log::info('🎯 AI validation completed', [
+                        'ai_powered' => $aiValidationResult['ai_powered'],
+                        'overall_score' => $aiValidationResult['overall_score'],
+                        'completion_status' => $aiValidationResult['completion_status'],
+                        'is_completed' => $aiValidationResult['is_completed']
+                    ]);
+
+                    // Get comprehensive AI feedback
+                    $comprehensiveFeedback = $this->aiValidationService->generateEducationalFeedback($aiValidationResult);
+                    
+                } catch (\Exception $aiError) {
+                    Log::error('❌ AI validation failed', [
+                        'activity_id' => $activityId,
+                        'error' => $aiError->getMessage(),
+                        'file' => $aiError->getFile(),
+                        'line' => $aiError->getLine()
+                    ]);
+
+                    if ($ruleValidation['has_checks'] ?? false) {
+                        Log::warning('Using deterministic validation fallback after AI failure', [
+                            'activity_id' => $activityId
+                        ]);
+                        $aiValidationResult = $this->activityRequirementValidator->toValidationResult($ruleValidation, $instructions, true);
+                        $comprehensiveFeedback = $this->activityRequirementValidator->generateFeedback($ruleValidation, true);
+                        $usedRuleFallback = true;
+                    } else {
+                        return response()->json([
+                            'message' => 'AI validation is currently unavailable. Please try again in a moment.',
+                            'error' => $aiError->getMessage()
+                        ], 503);
+                    }
+                }
             }
 
             // Store submission data for attempt tracking
@@ -250,7 +277,14 @@ class ActivityController extends Controller
                     'technical_validation' => $aiValidationResult['technical_validation'],
                     'requirements_analysis' => $aiValidationResult['requirements_analysis'],
                     'positive_aspects' => $aiValidationResult['positive_aspects'],
-                    'suggestions' => $aiValidationResult['suggestions']
+                    'suggestions' => $aiValidationResult['suggestions'],
+                    'rule_validation' => [
+                        'available' => $ruleValidation['has_checks'] ?? false,
+                        'passed' => $ruleValidation['passed'] ?? false,
+                        'score' => $ruleValidation['score'] ?? null,
+                        'strategy_used' => $usedRuleFallback ? 'rule_based' : 'ai',
+                        'checks' => $ruleValidation['checks'] ?? []
+                    ]
                 ])
             ];
             
@@ -328,10 +362,15 @@ class ActivityController extends Controller
                 'suggestions' => $aiValidationResult['suggestions'],
                 'areas_for_improvement' => $aiValidationResult['areas_for_improvement'],
                 'detailed_feedback' => $aiValidationResult['detailed_feedback'],
-                'using_ai_validation' => true,
+                'using_ai_validation' => $aiValidationResult['ai_powered'] ?? false,
+                'validation_strategy' => $usedRuleFallback ? 'rule_based' : 'ai',
+                'rule_validation_available' => $ruleValidation['has_checks'] ?? false,
+                'rule_validation_passed' => $ruleValidation['passed'] ?? false,
                 'message' => $aiValidationResult['is_completed'] ? 
-                    '🎉 Congratulations! Activity completed successfully! The AI has verified that your code meets all requirements.' : 
-                    '📚 Great effort! The AI has analyzed your code and provided detailed feedback to help you improve. Review the suggestions and try again!'
+                    ($usedRuleFallback && !($aiValidationResult['ai_powered'] ?? false)
+                        ? '✅ Fantastic! All deterministic HTML checks passed so we credited this activity while AI feedback was unavailable.'
+                        : '🎉 Congratulations! Activity completed successfully! The AI has verified that your code meets all requirements.') : 
+                    '📚 Great effort! The validator analyzed your code and provided detailed feedback to help you improve. Review the suggestions and try again!'
             ]);
 
         } catch (\Exception $e) {
