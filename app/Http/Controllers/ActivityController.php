@@ -216,42 +216,17 @@ class ActivityController extends Controller
                 $comprehensiveFeedback = $this->aiValidationService->generateEducationalFeedback($aiValidationResult);
                 
             } catch (\Exception $aiError) {
-                Log::error('❌ AI validation failed, using fallback', [
+                Log::error('❌ AI validation failed', [
                     'activity_id' => $activityId,
                     'error' => $aiError->getMessage(),
                     'file' => $aiError->getFile(),
                     'line' => $aiError->getLine()
                 ]);
                 
-                // Use fallback validation with simple scoring
-                $aiValidationResult = [
-                    'ai_powered' => false,
-                    'overall_score' => 60, // Default reasonable score
-                    'completion_status' => 'needs_improvement',
-                    'is_completed' => false,
-                    'validation_breakdown' => ['fallback_used' => true],
-                    'detailed_feedback' => 'Your code has been submitted successfully. Due to a temporary system issue, detailed AI feedback is not available right now.',
-                    'suggestions' => ['Please review the activity instructions and ensure all requirements are met.'],
-                    'areas_for_improvement' => ['Check syntax', 'Verify all instructions are followed'],
-                    'validation_summary' => [
-                        'overall' => [
-                            'passed' => 3,
-                            'total' => 5,
-                            'percentage' => 60
-                        ]
-                    ],
-                    'instruction_progress' => [],
-                    'technical_validation' => [],
-                    'requirements_analysis' => [],
-                    'positive_aspects' => ['Code submitted successfully']
-                ];
-                
-                $comprehensiveFeedback = $aiValidationResult['detailed_feedback'];
-                
-                Log::info('🔄 Using fallback validation', [
-                    'activity_id' => $activityId,
-                    'fallback_score' => $aiValidationResult['overall_score']
-                ]);
+                return response()->json([
+                    'message' => 'AI validation is currently unavailable. Please try again in a moment.',
+                    'error' => $aiError->getMessage()
+                ], 503);
             }
 
             // Store submission data for attempt tracking

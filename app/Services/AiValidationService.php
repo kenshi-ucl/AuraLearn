@@ -18,67 +18,51 @@ class AiValidationService
      */
     public function validateCodeWithAi($userCode, $instructions, $activityTitle, $activityDescription = null)
     {
-        try {
-            // Check if AI validation is enabled
-            if (!env('AI_VALIDATION_ENABLED', true)) {
-                Log::info('AI validation is disabled, using fallback');
-                return $this->getFallbackValidation($userCode, $instructions);
-            }
-            
-            Log::info('Starting AI validation', [
-                'activity_title' => $activityTitle,
-                'code_length' => strlen($userCode),
-                'instructions_count' => count($instructions)
-            ]);
+        Log::info('Starting AI validation', [
+            'activity_title' => $activityTitle,
+            'code_length' => strlen($userCode),
+            'instructions_count' => count($instructions)
+        ]);
 
-            // Set a time limit for AI validation
-            $startTime = microtime(true);
-            $maxExecutionTime = 4; // 4 seconds max for AI validation
+        // Set a time limit for AI validation
+        $startTime = microtime(true);
+        $maxExecutionTime = 6; // hard limit to keep requests responsive
 
-            // Prepare the AI prompt for validation
-            $prompt = $this->buildValidationPrompt($userCode, $instructions, $activityTitle, $activityDescription);
-            
-            // Format prompt as messages array for NebiusClient
-            $messages = [
-                [
-                    'role' => 'system',
-                    'content' => 'You are an expert HTML instructor evaluating student code submissions. Provide concise, structured validation in JSON format. Be brief but accurate.'
-                ],
-                [
-                    'role' => 'user',
-                    'content' => $prompt
-                ]
-            ];
-            
-            // Get AI analysis
-            $aiResponse = $this->nebiusClient->createChatCompletion($messages);
-            
-            // Check if we exceeded time limit
-            $executionTime = microtime(true) - $startTime;
-            if ($executionTime > $maxExecutionTime) {
-                Log::warning('AI validation took too long', ['execution_time' => $executionTime]);
-                throw new \Exception('AI validation timeout');
-            }
-            
-            // Parse the AI response into structured validation data
-            $validationResult = $this->parseAiValidationResponse($aiResponse);
-            
-            Log::info('AI validation completed', [
-                'overall_score' => $validationResult['overall_score'],
-                'completion_status' => $validationResult['completion_status'],
-                'execution_time' => $executionTime
-            ]);
-
-            return $validationResult;
-
-        } catch (\Exception $e) {
-            Log::error('AI validation failed, falling back to basic validation', [
-                'error' => $e->getMessage()
-            ]);
-
-            // Fallback to basic validation if AI fails
-            return $this->getFallbackValidation($userCode, $instructions);
+        // Prepare the AI prompt for validation
+        $prompt = $this->buildValidationPrompt($userCode, $instructions, $activityTitle, $activityDescription);
+        
+        // Format prompt as messages array for NebiusClient
+        $messages = [
+            [
+                'role' => 'system',
+                'content' => 'You are an expert HTML instructor evaluating student code submissions. Provide concise, structured validation in JSON format. Be strict and accurate.'
+            ],
+            [
+                'role' => 'user',
+                'content' => $prompt
+            ]
+        ];
+        
+        // Get AI analysis
+        $aiResponse = $this->nebiusClient->createChatCompletion($messages);
+        
+        // Check if we exceeded time limit
+        $executionTime = microtime(true) - $startTime;
+        if ($executionTime > $maxExecutionTime) {
+            Log::warning('AI validation took too long', ['execution_time' => $executionTime]);
+            throw new \RuntimeException('AI validation timeout');
         }
+        
+        // Parse the AI response into structured validation data
+        $validationResult = $this->parseAiValidationResponse($aiResponse);
+        
+        Log::info('AI validation completed', [
+            'overall_score' => $validationResult['overall_score'],
+            'completion_status' => $validationResult['completion_status'],
+            'execution_time' => $executionTime
+        ]);
+
+        return $validationResult;
     }
 
     /**
@@ -335,49 +319,6 @@ Be VERY concise. Focus on errors. JSON only.";
         }
 
         return implode("\n", $feedback);
-    }
-
-    /**
-     * Fallback validation when AI is unavailable
-     */
-    private function getFallbackValidation($userCode, $instructions)
-    {
-        Log::info('Using fallback validation');
-
-        // Basic checks
-        $hasDoctype = stripos($userCode, '<!DOCTYPE html>') !== false;
-        $hasHtml = preg_match('/<html[^>]*>.*<\/html>/s', $userCode);
-        $hasHead = preg_match('/<head[^>]*>.*<\/head>/s', $userCode);
-        $hasBody = preg_match('/<body[^>]*>.*<\/body>/s', $userCode);
-        $hasTitle = preg_match('/<title[^>]*>.*<\/title>/s', $userCode);
-
-        $basicScore = 0;
-        if ($hasDoctype) $basicScore += 20;
-        if ($hasHtml) $basicScore += 20;
-        if ($hasHead) $basicScore += 20;
-        if ($hasTitle) $basicScore += 20;
-        if ($hasBody) $basicScore += 20;
-
-        return [
-            'ai_powered' => false,
-            'overall_score' => $basicScore,
-            'completion_status' => $basicScore >= 80 ? 'passed' : ($basicScore >= 60 ? 'partial' : 'failed'),
-            'is_completed' => $basicScore >= 80,
-            'technical_validation' => [
-                'html_structure' => $hasHtml && $hasHead && $hasBody,
-                'syntax_valid' => true, // Basic assumption
-                'semantic_quality' => 50, // Default
-                'accessibility' => 50 // Default
-            ],
-            'detailed_feedback' => 'Basic validation completed. AI validation was unavailable, so this is a simplified check.',
-            'suggestions' => [
-                'Ensure you have all required HTML elements',
-                'Check that all tags are properly closed',
-                'Follow the activity instructions carefully'
-            ],
-            'positive_aspects' => [],
-            'areas_for_improvement' => []
-        ];
     }
 
     /**
