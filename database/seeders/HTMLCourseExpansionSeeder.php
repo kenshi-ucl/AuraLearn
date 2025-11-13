@@ -736,17 +736,11 @@ class HTMLCourseExpansionSeeder extends Seeder
         // Create HTML Attributes lesson
         $this->createHTMLAttributesLesson($htmlCourse);
         
-        // Create HTML Headings lesson
-        $this->createHTMLHeadingsLesson($htmlCourse);
-        
-        // Create HTML Paragraphs lesson
-        $this->createHTMLParagraphsLesson($htmlCourse);
-        
-        // Create HTML Styles lesson
-        $this->createHTMLStylesLesson($htmlCourse);
-        
-        // Create HTML Formatting lesson
-        $this->createHTMLFormattingLesson($htmlCourse);
+        // The following lessons are in HTMLCourseExpansionSeeder_Part2.php:
+        // - HTML Headings
+        // - HTML Paragraphs
+        // - HTML Styles
+        // - HTML Formatting
     }
     
     private function createHTMLElementsLesson($htmlCourse)
