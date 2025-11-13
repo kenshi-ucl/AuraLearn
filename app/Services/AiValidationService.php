@@ -19,11 +19,21 @@ class AiValidationService
     public function validateCodeWithAi($userCode, $instructions, $activityTitle, $activityDescription = null)
     {
         try {
+            // Check if AI validation is enabled
+            if (!env('AI_VALIDATION_ENABLED', true)) {
+                Log::info('AI validation is disabled, using fallback');
+                return $this->getFallbackValidation($userCode, $instructions);
+            }
+            
             Log::info('Starting AI validation', [
                 'activity_title' => $activityTitle,
                 'code_length' => strlen($userCode),
                 'instructions_count' => count($instructions)
             ]);
+
+            // Set a time limit for AI validation
+            $startTime = microtime(true);
+            $maxExecutionTime = 4; // 4 seconds max for AI validation
 
             // Prepare the AI prompt for validation
             $prompt = $this->buildValidationPrompt($userCode, $instructions, $activityTitle, $activityDescription);
@@ -32,7 +42,7 @@ class AiValidationService
             $messages = [
                 [
                     'role' => 'system',
-                    'content' => 'You are an expert HTML instructor evaluating student code submissions. Provide detailed, structured validation in JSON format.'
+                    'content' => 'You are an expert HTML instructor evaluating student code submissions. Provide concise, structured validation in JSON format. Be brief but accurate.'
                 ],
                 [
                     'role' => 'user',
@@ -43,12 +53,20 @@ class AiValidationService
             // Get AI analysis
             $aiResponse = $this->nebiusClient->createChatCompletion($messages);
             
+            // Check if we exceeded time limit
+            $executionTime = microtime(true) - $startTime;
+            if ($executionTime > $maxExecutionTime) {
+                Log::warning('AI validation took too long', ['execution_time' => $executionTime]);
+                throw new \Exception('AI validation timeout');
+            }
+            
             // Parse the AI response into structured validation data
             $validationResult = $this->parseAiValidationResponse($aiResponse);
             
             Log::info('AI validation completed', [
                 'overall_score' => $validationResult['overall_score'],
-                'completion_status' => $validationResult['completion_status']
+                'completion_status' => $validationResult['completion_status'],
+                'execution_time' => $executionTime
             ]);
 
             return $validationResult;
@@ -70,55 +88,27 @@ class AiValidationService
     {
         $instructionsText = is_array($instructions) ? implode("\n", $instructions) : $instructions;
         
-        return "You are an expert HTML instructor evaluating a student's code submission. Please analyze the following HTML code against the specific requirements and provide detailed validation.
+        return "Evaluate this HTML code for '{$activityTitle}'.
 
-**ACTIVITY: {$activityTitle}**
-" . ($activityDescription ? "**DESCRIPTION: {$activityDescription}**\n" : "") . "
-**REQUIREMENTS:**
+REQUIREMENTS:
 {$instructionsText}
 
-**STUDENT'S HTML CODE:**
+CODE:
 ```html
 {$userCode}
 ```
 
-**EVALUATION INSTRUCTIONS:**
-Please analyze this code and respond with a JSON object containing:
+Return JSON with:
+- overall_score: 0-100
+- completion_status: 'passed'/'partial'/'failed' 
+- requirements_analysis: [{requirement, met: bool, score, explanation}]
+- technical_validation: {html_structure: bool, syntax_valid: bool, semantic_quality: 0-100, accessibility: 0-100}
+- detailed_feedback: max 100 chars on what to fix
+- suggestions: max 3 brief fixes
+- areas_for_improvement: max 3 issues
+- positive_aspects: max 2 positives
 
-1. **overall_score** (0-100): Overall score based on requirement completion
-2. **com    sed', 'partial', 'failed'): Whether student passes (≥80%), partial (60-79%), or fails (<60%)
-3. **requirements_analysis**: Array of each requirement with:
-   - requirement: The specific requirement text
-   - met: true/false if requirement is fulfilled
-   - score: 0-100 score for this requirement
-   - explanation: Detailed explanation of why it passes/fails
-4. **technical_validation**: Object with:
-   - html_structure: true/false (proper DOCTYPE, html, head, body)
-   - syntax_valid: true/false (no syntax errors)
-   - semantic_quality: 0-100 (use of appropriate HTML elements)
-   - accessibility: 0-100 (alt attributes, lang attribute, etc.)
-5. **detailed_feedback**: Brief, focused feedback (max 200 characters) with only:
-   - What is missing or incorrect
-   - Quick fix suggestions
-   - No lengthy explanations
-6. **suggestions**: Array of max 3 brief, actionable fixes (short phrases only)
-7. **positive_aspects**: Array of max 2 brief positives (not displayed in frontend)
-8. **areas_for_improvement**: Array of max 3 specific issues to fix (short phrases only)
-
-**SCORING CRITERIA:**
-- Each requirement should be weighted equally
-- Consider both technical correctness and requirement fulfillment
-- Be strict but educational in your evaluation
-- Provide constructive feedback that helps learning
-
-**IMPORTANT:** 
-- Be very specific but CONCISE in your analysis
-- Look for exact matches to requirements, not just similar implementations
-- Keep all feedback SHORT and ACTIONABLE
-- Focus only on what needs to be fixed, not long explanations
-- Use brief phrases, not full sentences in suggestions/improvements
-
-Please respond ONLY with the JSON object, no additional text.";
+Be VERY concise. Focus on errors. JSON only.";
     }
 
     /**

@@ -21,8 +21,9 @@ class NebiusClient
 
         $this->client = new Client([
             'base_uri' => $this->baseUrl,
-            'timeout' => 10,  // Reduced to 10 seconds to avoid slow execution
-            'connect_timeout' => 3,
+            'timeout' => 5,  // Reduced to 5 seconds for faster response
+            'connect_timeout' => 2,  // Reduced connect timeout
+            'read_timeout' => 5,  // Also set read timeout
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
