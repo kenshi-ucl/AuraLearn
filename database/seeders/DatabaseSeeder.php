@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CourseSeeder::class,
             CodeExampleSeeder::class,
+            Html5MasterSeeder::class, // HTML5 course content
         ]);
     }
 }
