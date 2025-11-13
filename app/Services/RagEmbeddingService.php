@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\RagDocument;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class RagEmbeddingService
 {
@@ -190,25 +191,32 @@ class RagEmbeddingService
         array $documentTypes = []
     ): \Illuminate\Support\Collection {
         $limit = $limit ?? env('RAG_MAX_CHUNKS', 5);
+        
+        // Create cache key for search results
+        $cacheKey = 'rag_search:' . md5($query . '|' . $limit . '|' . $threshold . '|' . implode(',', $documentTypes));
+        
+        // Try to get from cache first
+        $results = Cache::remember($cacheKey, 300, function() use ($query, $limit, $threshold, $documentTypes) {
+            // Generate embedding for query
+            $queryEmbedding = $this->generateEmbedding($query, env('EMBEDDING_MODEL', 'BAAI/bge-multilingual-gemma2'));
 
-        // Generate embedding for query
-        $queryEmbedding = $this->generateEmbedding($query, env('EMBEDDING_MODEL', 'BAAI/bge-multilingual-gemma2'));
+            // Create base query
+            $documentsQuery = RagDocument::query();
 
-        // Create base query
-        $documentsQuery = RagDocument::query();
+            // Filter by document types if specified
+            if (!empty($documentTypes)) {
+                $documentsQuery->whereIn('document_type', $documentTypes);
+            }
 
-        // Filter by document types if specified
-        if (!empty($documentTypes)) {
-            $documentsQuery->whereIn('document_type', $documentTypes);
-        }
-
-        // Find similar documents
-        $results = RagDocument::findSimilar($queryEmbedding, $limit, $threshold);
+            // Find similar documents
+            return RagDocument::findSimilar($queryEmbedding, $limit, $threshold);
+        });
 
         Log::info('RAG search completed', [
             'query_length' => strlen($query),
             'results_count' => $results->count(),
-            'threshold' => $threshold
+            'threshold' => $threshold,
+            'cache_hit' => Cache::has($cacheKey)
         ]);
 
         return $results;
