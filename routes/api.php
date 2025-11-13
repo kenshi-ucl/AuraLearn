@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminUserController;
@@ -242,13 +244,26 @@ Route::prefix('achievements')->group(function () {
     Route::get('/by-course', [AchievementController::class, 'byCourse']);
 });
 
-// User Progress Routes
+// User Progress Routes - no authentication required (handled in controller)
 Route::get('user/progress', [AchievementController::class, 'userProgress']);
 Route::get('user/progress/lesson', [UserProgressController::class, 'getLessonProgress']);
 Route::post('user/progress/lesson-start', [UserProgressController::class, 'trackLessonStart']);
 Route::post('user/progress/update', [UserProgressController::class, 'updateLessonProgress']);
 Route::post('user/progress/time', [UserProgressController::class, 'trackTimeSpent']);
 Route::post('user/progress/topic', [UserProgressController::class, 'trackTopicComplete']);
+
+// Debug route to check authentication
+Route::get('debug/auth-check', function (Request $request) {
+    return response()->json([
+        'authenticated' => Auth::check(),
+        'guard_web' => Auth::guard('web')->check(),
+        'guard_admin' => Auth::guard('admin')->check(),
+        'user' => Auth::user(),
+        'session_id' => session()->getId(),
+        'has_session' => $request->hasSession(),
+        'headers' => $request->headers->all(),
+    ]);
+});
 
 // Course-specific achievements
 Route::get('courses/{courseId}/achievements', [AchievementController::class, 'courseAchievements']);
