@@ -7,10 +7,14 @@ use Illuminate\Support\Facades\Log;
 class AiValidationService
 {
     private NebiusClient $nebiusClient;
+    private int $maxExecutionTime;
+    private int $maxTokens;
 
     public function __construct(NebiusClient $nebiusClient)
     {
         $this->nebiusClient = $nebiusClient;
+        $this->maxExecutionTime = (int) env('AI_VALIDATION_TIMEOUT_SECONDS', 12);
+        $this->maxTokens = max(400, min((int) env('AI_VALIDATION_MAX_TOKENS', 900), 2000));
     }
 
     /**
@@ -24,9 +28,8 @@ class AiValidationService
             'instructions_count' => count($instructions)
         ]);
 
-        // Set a time limit for AI validation
+        // Track execution time for observability
         $startTime = microtime(true);
-        $maxExecutionTime = 6; // hard limit to keep requests responsive
 
         // Prepare the AI prompt for validation
         $prompt = $this->buildValidationPrompt($userCode, $instructions, $activityTitle, $activityDescription);
@@ -44,13 +47,17 @@ class AiValidationService
         ];
         
         // Get AI analysis
-        $aiResponse = $this->nebiusClient->createChatCompletion($messages);
+        $aiResponse = $this->nebiusClient->createChatCompletion($messages, [
+            'max_tokens' => $this->maxTokens
+        ]);
         
         // Check if we exceeded time limit
         $executionTime = microtime(true) - $startTime;
-        if ($executionTime > $maxExecutionTime) {
-            Log::warning('AI validation took too long', ['execution_time' => $executionTime]);
-            throw new \RuntimeException('AI validation timeout');
+        if ($executionTime > $this->maxExecutionTime) {
+            Log::warning('AI validation took longer than expected', [
+                'execution_time' => $executionTime,
+                'configured_max' => $this->maxExecutionTime
+            ]);
         }
         
         // Parse the AI response into structured validation data

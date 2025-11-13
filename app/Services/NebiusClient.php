@@ -12,18 +12,33 @@ class NebiusClient
     private ?string $apiKey;
     private string $baseUrl;
     private string $model;
+    private float $timeout;
+    private float $connectTimeout;
+    private float $readTimeout;
+    private int $maxRetries;
+    private int $retryDelayMs;
+    private bool $allowMockFallback;
 
     public function __construct()
     {
         $this->apiKey = env('NEBIUS_API_KEY');
         $this->baseUrl = env('NEBIUS_BASE_URL', 'https://api.studio.nebius.com/v1/');
         $this->model = env('NEBIUS_MODEL', 'openai/gpt-oss-20b');
+        $this->timeout = (float) env('NEBIUS_TIMEOUT_SECONDS', 12);
+        $this->connectTimeout = (float) env('NEBIUS_CONNECT_TIMEOUT', 4);
+        $this->readTimeout = (float) env('NEBIUS_READ_TIMEOUT', $this->timeout);
+        $this->maxRetries = max(1, (int) env('NEBIUS_MAX_RETRIES', 2));
+        $this->retryDelayMs = max(50, (int) env('NEBIUS_RETRY_DELAY_MS', 250));
+        $this->allowMockFallback = (bool) env(
+            'NEBIUS_ALLOW_MOCK',
+            env('APP_ENV', 'production') !== 'production'
+        );
 
         $this->client = new Client([
             'base_uri' => $this->baseUrl,
-            'timeout' => 5,  // Reduced to 5 seconds for faster response
-            'connect_timeout' => 2,  // Reduced connect timeout
-            'read_timeout' => 5,  // Also set read timeout
+            'timeout' => $this->timeout,
+            'connect_timeout' => $this->connectTimeout,
+            'read_timeout' => $this->readTimeout,
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
@@ -39,54 +54,88 @@ class NebiusClient
     {
         // Check if Nebius API key is available
         if (!$this->apiKey) {
-            Log::warning('Nebius API key not configured, using mock response');
+            if ($this->allowMockFallback) {
+                Log::warning('Nebius API key not configured, using mock response');
+                return $this->createMockChatCompletion($messages, $options);
+            }
+
+            throw new \RuntimeException('Nebius API key is not configured');
+        }
+
+        $payload = array_merge([
+            'model' => $this->model,
+            'messages' => $messages,
+            'max_tokens' => env('AURABOT_MAX_TOKENS', 10000),
+            'temperature' => 0.1, // Low temperature for consistent responses
+            'top_p' => 0.9,
+            'stream' => false
+        ], $options);
+
+        // Basic guardrails on token usage to avoid timeouts
+        $payload['max_tokens'] = max(200, min((int) $payload['max_tokens'], (int) env('NEBIUS_MAX_TOKENS_CAP', 4000)));
+
+        $attempt = 0;
+        $lastException = null;
+
+        while ($attempt < $this->maxRetries) {
+            $attempt++;
+
+            try {
+                Log::info('Nebius API Request', [
+                    'attempt' => $attempt,
+                    'model' => $payload['model'],
+                    'message_count' => count($messages),
+                    'max_tokens' => $payload['max_tokens']
+                ]);
+
+                $response = $this->client->post('chat/completions', [
+                    'json' => $payload
+                ]);
+
+                $data = json_decode($response->getBody()->getContents(), true);
+
+                Log::info('Nebius API Response', [
+                    'usage' => $data['usage'] ?? null,
+                    'model' => $data['model'] ?? null
+                ]);
+
+                return $data;
+
+            } catch (GuzzleException $e) {
+                $lastException = $e;
+                Log::warning('Nebius API request failed', [
+                    'attempt' => $attempt,
+                    'max_attempts' => $this->maxRetries,
+                    'error' => $e->getMessage(),
+                    'code' => $e->getCode()
+                ]);
+            } catch (\Exception $e) {
+                $lastException = $e;
+                Log::warning('Nebius client error', [
+                    'attempt' => $attempt,
+                    'max_attempts' => $this->maxRetries,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            if ($attempt < $this->maxRetries) {
+                usleep($this->retryDelayMs * 1000);
+            }
+        }
+
+        if ($this->allowMockFallback) {
+            Log::warning('Nebius API unavailable after retries, using mock response', [
+                'error' => $lastException ? $lastException->getMessage() : 'unknown'
+            ]);
+
             return $this->createMockChatCompletion($messages, $options);
         }
 
-        try {
-            $payload = array_merge([
-                'model' => $this->model,
-                'messages' => $messages,
-                'max_tokens' => env('AURABOT_MAX_TOKENS', 5000),
-                'temperature' => 0.1, // Low temperature for consistent responses
-                'top_p' => 0.9,
-                'stream' => false
-            ], $options);
-
-            Log::info('Nebius API Request', [
-                'model' => $payload['model'],
-                'message_count' => count($messages),
-                'max_tokens' => $payload['max_tokens']
-            ]);
-
-            $response = $this->client->post('chat/completions', [
-                'json' => $payload
-            ]);
-
-            $data = json_decode($response->getBody()->getContents(), true);
-
-            Log::info('Nebius API Response', [
-                'usage' => $data['usage'] ?? null,
-                'model' => $data['model'] ?? null
-            ]);
-
-            return $data;
-
-        } catch (GuzzleException $e) {
-            Log::warning('Nebius API Error, falling back to mock response', [
-                'error' => $e->getMessage()
-            ]);
-
-            // Fall back to mock response for testing
-            return $this->createMockChatCompletion($messages, $options);
-        } catch (\Exception $e) {
-            Log::warning('Nebius Client Error, falling back to mock response', [
-                'error' => $e->getMessage()
-            ]);
-
-            // Fall back to mock response for testing
-            return $this->createMockChatCompletion($messages, $options);
-        }
+        throw new \RuntimeException(
+            'Nebius API failed after ' . $this->maxRetries . ' attempt(s)',
+            0,
+            $lastException
+        );
     }
 
     /**
