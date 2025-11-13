@@ -197,6 +197,7 @@ class HTMLCourseExpansionSeeder extends Seeder
 - Additional headings using <h2> tags
 - More paragraphs about yourself
 - Different content that interests you',
+            ],
             'order_index' => 1,
         ]);
 
@@ -561,6 +562,7 @@ class HTMLCourseExpansionSeeder extends Seeder
     <p>Thanks for visiting my page!</p>
 </body>
 </html>',
+            ],
             'hints' => 'Create a complete HTML page that includes:
 1. A proper DOCTYPE and HTML structure
 2. A meaningful page title
@@ -1007,6 +1009,7 @@ class HTMLCourseExpansionSeeder extends Seeder
     </div>
 </body>
 </html>',
+            ],
             'hints' => 'Create a properly structured HTML document that demonstrates:
 1. Nested elements (divs containing other elements)
 2. Proper opening and closing tags
@@ -1488,6 +1491,7 @@ class HTMLCourseExpansionSeeder extends Seeder
     </div>
 </body>
 </html>',
+            ],
             'hints' => 'Add appropriate attributes to make this page functional and accessible:
 1. Add lang attribute to html element
 2. Add id and class attributes to the h1
