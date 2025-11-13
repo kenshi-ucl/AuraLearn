@@ -300,9 +300,8 @@ class HTMLCourseExpansionSeeder extends Seeder
                     'Each paragraph should be wrapped in <p> tags'
                 ]
             ],
-            'difficulty' => 'beginner',
             'points' => 100,
-            'time_limit' => 1800,
+            'time_limit' => 30,
             'order_index' => 1,
         ]);
 
@@ -721,7 +720,6 @@ class HTMLCourseExpansionSeeder extends Seeder
                     'Make sure your links have href attributes'
                 ]
             ],
-            'difficulty' => 'beginner',
             'points' => 100,
             'time_limit' => 2400,
             'order_index' => 1,
@@ -1154,7 +1152,6 @@ class HTMLCourseExpansionSeeder extends Seeder
                     'Check that all your tags are lowercase'
                 ]
             ],
-            'difficulty' => 'beginner',
             'points' => 100,
             'time_limit' => 2400,
             'order_index' => 1,
@@ -1636,7 +1633,6 @@ class HTMLCourseExpansionSeeder extends Seeder
                     'Use descriptive alt text for images'
                 ]
             ],
-            'difficulty' => 'intermediate',
             'points' => 100,
             'time_limit' => 3000,
             'order_index' => 1,

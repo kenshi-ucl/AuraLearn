@@ -405,7 +405,6 @@ class HTMLCourseExpansionSeeder_Part2 extends Seeder
                     'Make sure not to skip levels (e.g., h2 to h4)'
                 ]
             ],
-            'difficulty' => 'intermediate',
             'points' => 100,
             'time_limit' => 2400,
             'order_index' => 1,
@@ -830,7 +829,6 @@ greet("World")
                 'Write meaningful content in your paragraphs',
                 'Consider the logical flow of your blog post'
             ],
-            'difficulty' => 'intermediate',
             'points' => 100,
             'time_limit' => 3000,
             'order_index' => 1,
@@ -1249,7 +1247,6 @@ greet("World")
                 'Consider using hr for visual separation',
                 'Professional colors: blues, grays, whites'
             ],
-            'difficulty' => 'intermediate',
             'points' => 100,
             'time_limit' => 3600,
             'order_index' => 1,
@@ -1673,7 +1670,6 @@ The &lt;mark&gt;HTML&lt;/mark&gt; standard defines web structure.&lt;/p&gt;</cod
                 'Use mark to highlight key findings',
                 'Show corrections with del and ins tags'
             ],
-            'difficulty' => 'advanced',
             'points' => 100,
             'time_limit' => 3600,
             'order_index' => 1,
