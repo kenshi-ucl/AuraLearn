@@ -197,26 +197,40 @@ class RagEmbeddingService
         
         // Try to get from cache first
         $results = Cache::remember($cacheKey, 300, function() use ($query, $limit, $threshold, $documentTypes) {
-            // Generate embedding for query
-            $queryEmbedding = $this->generateEmbedding($query, env('EMBEDDING_MODEL', 'BAAI/bge-multilingual-gemma2'));
+            try {
+                // Generate embedding for query
+                $queryEmbedding = $this->generateEmbedding($query, env('EMBEDDING_MODEL', 'BAAI/bge-multilingual-gemma2'));
 
-            // Create base query
-            $documentsQuery = RagDocument::query();
+                // Create base query
+                $documentsQuery = RagDocument::query();
 
-            // Filter by document types if specified
-            if (!empty($documentTypes)) {
-                $documentsQuery->whereIn('document_type', $documentTypes);
+                // Filter by document types if specified
+                if (!empty($documentTypes)) {
+                    $documentsQuery->whereIn('document_type', $documentTypes);
+                }
+
+                // Find similar documents with timeout
+                $startTime = microtime(true);
+                $results = RagDocument::findSimilar($queryEmbedding, $limit, $threshold);
+                $duration = microtime(true) - $startTime;
+                
+                if ($duration > 2.0) {
+                    Log::warning('RAG search slow', ['duration' => $duration, 'query' => substr($query, 0, 50)]);
+                }
+                
+                return $results;
+            } catch (\Exception $e) {
+                Log::error('RAG search error', ['error' => $e->getMessage()]);
+                // Return empty collection on error
+                return collect([]);
             }
-
-            // Find similar documents
-            return RagDocument::findSimilar($queryEmbedding, $limit, $threshold);
         });
 
         Log::info('RAG search completed', [
             'query_length' => strlen($query),
             'results_count' => $results->count(),
             'threshold' => $threshold,
-            'cache_hit' => Cache::has($cacheKey)
+            'cache_hit' => !is_null(Cache::get($cacheKey))
         ]);
 
         return $results;
