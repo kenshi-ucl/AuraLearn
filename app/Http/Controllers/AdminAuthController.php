@@ -26,6 +26,10 @@ class AdminAuthController extends Controller
         }
 
         Auth::guard('admin')->login($admin, true);
+        
+        // Force session save
+        $request->session()->regenerate();
+        $request->session()->save();
 
         // Log successful admin login
         AuditLog::logLogin('admin', $admin->id, $admin->email);
