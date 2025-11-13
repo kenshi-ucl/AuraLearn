@@ -90,7 +90,7 @@ class RagEmbeddingService
     /**
      * Split text into chunks for embedding
      */
-    public function chunkText(string $text, int $chunkSize = null, int $overlap = null): array
+    public function chunkText(string $text, ?int $chunkSize = null, ?int $overlap = null): array
     {
         $chunkSize = $chunkSize ?? env('RAG_CHUNK_SIZE', 1000);
         $overlap = $overlap ?? env('RAG_CHUNK_OVERLAP', 200);
@@ -203,7 +203,7 @@ class RagEmbeddingService
      */
     public function searchRelevantDocuments(
         string $query,
-        int $limit = null,
+        ?int $limit = null,
         float $threshold = 0.7,
         array $documentTypes = []
     ): \Illuminate\Support\Collection {
