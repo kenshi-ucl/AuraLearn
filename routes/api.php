@@ -18,6 +18,7 @@ use App\Http\Controllers\AuraBotController;
 use App\Http\Controllers\AchievementController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UserProgressController;
+use App\Http\Controllers\AdminDebugController;
 //hello world
 // AuraBot RAG API Routes (public access for frontend)
 Route::prefix('aurabot')->group(function () {
@@ -41,6 +42,9 @@ Route::post('test-upload/video', [FileUploadController::class, 'uploadVideo']);
 
 Route::prefix('admin')->middleware('admin_api')->group(function () {
     Route::post('login', [AdminAuthController::class, 'login']);
+    
+    // Debug route (temporarily outside auth middleware)
+    Route::get('debug-session', [AdminDebugController::class, 'debugSession']);
 
     Route::middleware('auth:admin')->group(function () {
         Route::get('me', [AdminAuthController::class, 'me']);
