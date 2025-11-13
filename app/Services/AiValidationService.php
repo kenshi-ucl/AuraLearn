@@ -183,12 +183,19 @@ Be VERY concise. Focus on errors. JSON only.";
     }
 
     /**
-     * Validate completion status
+     * Validate completion status and map to database-compatible values
      */
     private function validateCompletionStatus($status)
     {
-        $validStatuses = ['passed', 'partial', 'failed'];
-        return in_array($status, $validStatuses) ? $status : 'failed';
+        // Map AI statuses to database-compatible values
+        $statusMapping = [
+            'passed' => 'passed',
+            'partial' => 'needs_review', // Map 'partial' to 'needs_review' for database
+            'failed' => 'failed'
+        ];
+        
+        $normalizedStatus = strtolower(trim($status));
+        return $statusMapping[$normalizedStatus] ?? 'failed';
     }
 
     /**

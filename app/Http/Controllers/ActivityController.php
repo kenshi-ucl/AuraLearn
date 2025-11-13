@@ -205,36 +205,36 @@ class ActivityController extends Controller
             $aiValidationResult = null;
             $comprehensiveFeedback = '';
 
-            try {
-                $aiValidationResult = $this->aiValidationService->validateCodeWithAi(
-                    $userCode, 
-                    $instructions, 
-                    $activity->title, 
-                    $activity->description
-                );
+                try {
+                    $aiValidationResult = $this->aiValidationService->validateCodeWithAi(
+                        $userCode, 
+                        $instructions, 
+                        $activity->title, 
+                        $activity->description
+                    );
 
-                Log::info('🎯 AI validation completed', [
-                    'ai_powered' => $aiValidationResult['ai_powered'],
-                    'overall_score' => $aiValidationResult['overall_score'],
-                    'completion_status' => $aiValidationResult['completion_status'],
-                    'is_completed' => $aiValidationResult['is_completed']
-                ]);
+                    Log::info('🎯 AI validation completed', [
+                        'ai_powered' => $aiValidationResult['ai_powered'],
+                        'overall_score' => $aiValidationResult['overall_score'],
+                        'completion_status' => $aiValidationResult['completion_status'],
+                        'is_completed' => $aiValidationResult['is_completed']
+                    ]);
 
-                // Get comprehensive AI feedback
-                $comprehensiveFeedback = $this->aiValidationService->generateEducationalFeedback($aiValidationResult);
-                
-            } catch (\Exception $aiError) {
-                Log::error('❌ AI validation failed', [
-                    'activity_id' => $activityId,
-                    'error' => $aiError->getMessage(),
-                    'file' => $aiError->getFile(),
-                    'line' => $aiError->getLine()
-                ]);
+                    // Get comprehensive AI feedback
+                    $comprehensiveFeedback = $this->aiValidationService->generateEducationalFeedback($aiValidationResult);
+                    
+                } catch (\Exception $aiError) {
+                    Log::error('❌ AI validation failed', [
+                        'activity_id' => $activityId,
+                        'error' => $aiError->getMessage(),
+                        'file' => $aiError->getFile(),
+                        'line' => $aiError->getLine()
+                    ]);
 
-                return response()->json([
-                    'message' => 'AI validation is currently unavailable. Please try again in a moment.',
+                        return response()->json([
+                            'message' => 'AI validation is currently unavailable. Please try again in a moment.',
                     'error' => 'AI service timeout or error occurred'
-                ], 503);
+                        ], 503);
             }
 
             // Store submission data for attempt tracking
