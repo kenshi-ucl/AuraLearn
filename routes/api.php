@@ -27,6 +27,7 @@ Route::prefix('aurabot')->group(function () {
     Route::get('session-status', [AuraBotController::class, 'getSessionStatus']);
     Route::get('conversation-history', [AuraBotController::class, 'getConversationHistory']);
     Route::get('health', [AuraBotController::class, 'healthCheck']);
+    Route::get('test-api', [AuraBotController::class, 'testApi']);
     
     // Admin routes for session management
     Route::middleware(['auth:admin'])->group(function () {
@@ -236,6 +237,7 @@ Route::post('activities/{activityId}/submit', [ActivityController::class, 'submi
 Route::get('activities/{activityId}/status', [ActivityController::class, 'getSubmissionStatus']);
 Route::delete('activities/{activityId}/clear-data', [ActivityController::class, 'clearTemporaryData']);
 Route::delete('activities/clear-all-data', [ActivityController::class, 'clearTemporaryData']);
+Route::get('activities/test-validation', [ActivityController::class, 'testValidation']);
 
 // Achievement Routes - Public access with user_id parameter
 Route::prefix('achievements')->group(function () {

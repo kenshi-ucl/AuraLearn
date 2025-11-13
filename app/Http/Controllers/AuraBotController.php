@@ -220,5 +220,83 @@ class AuraBotController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Test API endpoint for debugging AuraBot issues
+     */
+    public function testApi(): JsonResponse
+    {
+        try {
+            Log::info('AuraBot test API called');
+
+            // Check environment configuration
+            $config = [
+                'app_env' => env('APP_ENV'),
+                'api_key_set' => !empty(env('NEBIUS_API_KEY')),
+                'base_url' => env('NEBIUS_BASE_URL', 'https://api.studio.nebius.com/v1/'),
+                'model' => env('NEBIUS_MODEL', 'openai/gpt-oss-20b'),
+                'timeout' => env('NEBIUS_TIMEOUT_SECONDS', 12),
+                'max_tokens' => env('AURABOT_MAX_TOKENS', 5000),
+                'allow_mock' => env('NEBIUS_ALLOW_MOCK', env('APP_ENV') !== 'production'),
+            ];
+
+            // Test simple Nebius API call
+            $nebiusClient = app(\App\Services\NebiusClient::class);
+            
+            $startTime = microtime(true);
+            
+            try {
+                $messages = [
+                    ['role' => 'user', 'content' => 'Say "Hello from AuraBot!" and nothing else.']
+                ];
+                
+                $response = $nebiusClient->createChatCompletion($messages, [
+                    'max_tokens' => 50,
+                    'temperature' => 0
+                ]);
+                
+                $endTime = microtime(true);
+                $responseTime = round(($endTime - $startTime) * 1000, 2); // milliseconds
+                
+                $apiResponse = [
+                    'success' => true,
+                    'response' => $response['choices'][0]['message']['content'] ?? 'No response',
+                    'model' => $response['model'] ?? 'Unknown',
+                    'is_mock' => strpos($response['model'] ?? '', 'mock') !== false,
+                    'response_time_ms' => $responseTime,
+                    'tokens_used' => $response['usage']['total_tokens'] ?? 0
+                ];
+                
+            } catch (\Exception $e) {
+                $endTime = microtime(true);
+                $responseTime = round(($endTime - $startTime) * 1000, 2);
+                
+                $apiResponse = [
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                    'response_time_ms' => $responseTime
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'config' => $config,
+                'api_test' => $apiResponse,
+                'timestamp' => now()->toISOString()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('AuraBot test API error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'timestamp' => now()->toISOString()
+            ], 500);
+        }
+    }
 }
 

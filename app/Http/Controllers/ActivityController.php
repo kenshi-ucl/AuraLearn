@@ -201,59 +201,40 @@ class ActivityController extends Controller
                 return !empty($instruction) && !preg_match('/^\d+\.\s*$/', $instruction);
             });
 
-            // Deterministic validation using metadata
-            $ruleValidation = $this->activityRequirementValidator->validate($activity, $userCode);
-            $usedRuleFallback = false;
+            // 🤖 AI-POWERED VALIDATION ONLY - No fallbacks!
             $aiValidationResult = null;
             $comprehensiveFeedback = '';
 
-            if (($ruleValidation['has_checks'] ?? false) && !$ruleValidation['passed']) {
-                // Fail fast with deterministic feedback
-                $aiValidationResult = $this->activityRequirementValidator->toValidationResult($ruleValidation, $instructions);
-                $comprehensiveFeedback = $this->activityRequirementValidator->generateFeedback($ruleValidation);
-                $usedRuleFallback = true;
-            } else {
-                // 🤖 AI-POWERED VALIDATION - The main event!
-                try {
-                    $aiValidationResult = $this->aiValidationService->validateCodeWithAi(
-                        $userCode, 
-                        $instructions, 
-                        $activity->title, 
-                        $activity->description
-                    );
+            try {
+                $aiValidationResult = $this->aiValidationService->validateCodeWithAi(
+                    $userCode, 
+                    $instructions, 
+                    $activity->title, 
+                    $activity->description
+                );
 
-                    Log::info('🎯 AI validation completed', [
-                        'ai_powered' => $aiValidationResult['ai_powered'],
-                        'overall_score' => $aiValidationResult['overall_score'],
-                        'completion_status' => $aiValidationResult['completion_status'],
-                        'is_completed' => $aiValidationResult['is_completed']
-                    ]);
+                Log::info('🎯 AI validation completed', [
+                    'ai_powered' => $aiValidationResult['ai_powered'],
+                    'overall_score' => $aiValidationResult['overall_score'],
+                    'completion_status' => $aiValidationResult['completion_status'],
+                    'is_completed' => $aiValidationResult['is_completed']
+                ]);
 
-                    // Get comprehensive AI feedback
-                    $comprehensiveFeedback = $this->aiValidationService->generateEducationalFeedback($aiValidationResult);
-                    
-                } catch (\Exception $aiError) {
-                    Log::error('❌ AI validation failed', [
-                        'activity_id' => $activityId,
-                        'error' => $aiError->getMessage(),
-                        'file' => $aiError->getFile(),
-                        'line' => $aiError->getLine()
-                    ]);
+                // Get comprehensive AI feedback
+                $comprehensiveFeedback = $this->aiValidationService->generateEducationalFeedback($aiValidationResult);
+                
+            } catch (\Exception $aiError) {
+                Log::error('❌ AI validation failed', [
+                    'activity_id' => $activityId,
+                    'error' => $aiError->getMessage(),
+                    'file' => $aiError->getFile(),
+                    'line' => $aiError->getLine()
+                ]);
 
-                    if ($ruleValidation['has_checks'] ?? false) {
-                        Log::warning('Using deterministic validation fallback after AI failure', [
-                            'activity_id' => $activityId
-                        ]);
-                        $aiValidationResult = $this->activityRequirementValidator->toValidationResult($ruleValidation, $instructions, true);
-                        $comprehensiveFeedback = $this->activityRequirementValidator->generateFeedback($ruleValidation, true);
-                        $usedRuleFallback = true;
-                    } else {
-                        return response()->json([
-                            'message' => 'AI validation is currently unavailable. Please try again in a moment.',
-                            'error' => $aiError->getMessage()
-                        ], 503);
-                    }
-                }
+                return response()->json([
+                    'message' => 'AI validation is currently unavailable. Please try again in a moment.',
+                    'error' => 'AI service timeout or error occurred'
+                ], 503);
             }
 
             // Store submission data for attempt tracking
@@ -272,19 +253,12 @@ class ActivityController extends Controller
                 'feedback' => $comprehensiveFeedback,
                 'attempt_number' => $attemptNumber,
                 'validation_results' => json_encode([
-                    'ai_powered' => $aiValidationResult['ai_powered'],
+                    'ai_powered' => true, // Always AI powered now
                     'overall' => $aiValidationResult['validation_summary']['overall'],
                     'technical_validation' => $aiValidationResult['technical_validation'],
                     'requirements_analysis' => $aiValidationResult['requirements_analysis'],
                     'positive_aspects' => $aiValidationResult['positive_aspects'],
-                    'suggestions' => $aiValidationResult['suggestions'],
-                    'rule_validation' => [
-                        'available' => $ruleValidation['has_checks'] ?? false,
-                        'passed' => $ruleValidation['passed'] ?? false,
-                        'score' => $ruleValidation['score'] ?? null,
-                        'strategy_used' => $usedRuleFallback ? 'rule_based' : 'ai',
-                        'checks' => $ruleValidation['checks'] ?? []
-                    ]
+                    'suggestions' => $aiValidationResult['suggestions']
                 ])
             ];
             
@@ -1213,6 +1187,93 @@ class ActivityController extends Controller
         }
         
         return true;
+    }
+
+    /**
+     * Test AI validation endpoint
+     */
+    public function testValidation(): JsonResponse
+    {
+        try {
+            Log::info('AI validation test called');
+
+            // Check configuration
+            $config = [
+                'ai_enabled' => env('AI_VALIDATION_ENABLED', false),
+                'timeout' => env('AI_VALIDATION_TIMEOUT_SECONDS', 12),
+                'max_tokens' => env('AI_VALIDATION_MAX_TOKENS', 900),
+                'nebius_timeout' => env('NEBIUS_TIMEOUT_SECONDS', 12),
+                'nebius_allow_mock' => env('NEBIUS_ALLOW_MOCK', false)
+            ];
+
+            // Test simple HTML validation
+            $testCode = '<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Page</title>
+</head>
+<body>
+    <h1>Hello World</h1>
+    <p>This is a test paragraph.</p>
+</body>
+</html>';
+            
+            $instructions = [
+                "Create a basic HTML page with a title",
+                "Add an h1 heading with 'Hello World'",
+                "Include a paragraph element"
+            ];
+            
+            $startTime = microtime(true);
+            
+            try {
+                $validationResult = $this->aiValidationService->validateCodeWithAi(
+                    $testCode,
+                    $instructions,
+                    "Test HTML Page",
+                    "Test validation of basic HTML structure"
+                );
+                
+                $endTime = microtime(true);
+                $responseTime = round(($endTime - $startTime) * 1000, 2);
+                
+                $testResult = [
+                    'success' => true,
+                    'response_time_ms' => $responseTime,
+                    'validation' => $validationResult,
+                    'ai_powered' => $validationResult['ai_powered'] ?? false
+                ];
+                
+            } catch (\Exception $e) {
+                $endTime = microtime(true);
+                $responseTime = round(($endTime - $startTime) * 1000, 2);
+                
+                $testResult = [
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                    'response_time_ms' => $responseTime
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'config' => $config,
+                'test_result' => $testResult,
+                'timestamp' => now()->toISOString()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('AI validation test error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'timestamp' => now()->toISOString()
+            ], 500);
+        }
     }
 
     private function validateCodeQuality($userCode)

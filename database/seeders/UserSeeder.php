@@ -21,7 +21,7 @@ class UserSeeder extends Seeder
                 'progress' => [
                     'completedCourses' => 8,
                     'totalCourses' => 15,
-                    'currentCourse' => 'Advanced CSS Grid',
+                    'currentCourse' => 'Advanced HTML5',
                     'streak' => 12,
                     'totalPoints' => 2850,
                     'rank' => 15,
