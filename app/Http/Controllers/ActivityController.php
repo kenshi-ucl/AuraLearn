@@ -336,14 +336,10 @@ class ActivityController extends Controller
                 'suggestions' => $aiValidationResult['suggestions'],
                 'areas_for_improvement' => $aiValidationResult['areas_for_improvement'],
                 'detailed_feedback' => $aiValidationResult['detailed_feedback'],
-                'using_ai_validation' => $aiValidationResult['ai_powered'] ?? false,
-                'validation_strategy' => $usedRuleFallback ? 'rule_based' : 'ai',
-                'rule_validation_available' => $ruleValidation['has_checks'] ?? false,
-                'rule_validation_passed' => $ruleValidation['passed'] ?? false,
+                'using_ai_validation' => true,
+                'validation_strategy' => 'ai',
                 'message' => $aiValidationResult['is_completed'] ? 
-                    ($usedRuleFallback && !($aiValidationResult['ai_powered'] ?? false)
-                        ? '✅ Fantastic! All deterministic HTML checks passed so we credited this activity while AI feedback was unavailable.'
-                        : '🎉 Congratulations! Activity completed successfully! The AI has verified that your code meets all requirements.') : 
+                    '🎉 Congratulations! Activity completed successfully! The AI has verified that your code meets all requirements.' : 
                     '📚 Great effort! The validator analyzed your code and provided detailed feedback to help you improve. Review the suggestions and try again!'
             ]);
 
@@ -354,8 +350,17 @@ class ActivityController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             
-            // Fallback to basic validation if AI fails completely
-            return $this->handleSubmissionFallback($request, $activityId, $e);
+            // Return error response - NO FALLBACK, NO CELEBRATION
+            return response()->json([
+                'success' => false,
+                'is_completed' => false,
+                'score' => 0,
+                'completion_status' => 'failed',
+                'message' => 'AI validation service is currently unavailable. Please try again in a moment.',
+                'error' => 'AI service temporarily unavailable',
+                'ai_powered' => false,
+                'feedback' => 'The AI validation service is temporarily unavailable. Please wait a moment and try submitting again.'
+            ], 503);
         }
     }
 
@@ -2242,101 +2247,6 @@ class ActivityController extends Controller
     private function getWeeklyCompletionTrend($submissions) { return []; }
     private function getMonthlyImprovement($submissions) { return []; }
 
-    /**
-     * Fallback submission handling when AI validation fails
-     */
-    private function handleSubmissionFallback(Request $request, $activityId, \Exception $originalError)
-    {
-        Log::warning('🔄 Using fallback validation due to AI error', [
-            'activity_id' => $activityId,
-            'original_error' => $originalError->getMessage()
-        ]);
-
-        try {
-            // Get user from request or use default - USER-SPECIFIC DATA ISOLATION
-            $userId = $request->input('user_id') ?? 1; // Default to user 1 if not provided
-            $user = (object)[
-                'id' => $userId,
-                'email' => 'user@example.com',
-                'name' => 'User'
-            ];
-
-            $userCode = trim($request->user_code);
-            $activity = Activity::findOrFail($activityId);
-
-            // Basic validation fallback
-            $basicScore = $this->performBasicValidation($userCode);
-            $isCompleted = $basicScore >= 70;
-
-            // Store with fallback data
-            $tempDB = new TemporaryDatabaseService();
-            $currentStatus = $tempDB->getSubmissionStatus($user->id, $activityId);
-            $attemptNumber = $currentStatus['total_attempts'] + 1;
-
-            $submissionData = [
-                'user_id' => $user->id,
-                'activity_id' => $activityId,
-                'submitted_code' => $userCode,
-                'score' => $basicScore,
-                'is_completed' => $isCompleted,
-                'completion_status' => $isCompleted ? 'passed' : 'needs_improvement',
-                'time_spent_minutes' => $request->time_spent_minutes,
-                'feedback' => 'Basic validation completed. AI validation temporarily unavailable.',
-                'attempt_number' => $attemptNumber,
-                'validation_results' => json_encode([
-                    'ai_powered' => false,
-                    'fallback_mode' => true,
-                    'original_error' => $originalError->getMessage()
-                ])
-            ];
-
-            $submission = $tempDB->storeSubmission($submissionData);
-
-            return response()->json([
-                'success' => true,
-                'submission_id' => $submission['id'],
-                'score' => $basicScore,
-                'is_completed' => $isCompleted,
-                'completion_status' => $isCompleted ? 'passed' : 'needs_improvement',
-                'attempt_number' => $attemptNumber,
-                'feedback' => 'Your submission has been processed with basic validation. AI validation is temporarily unavailable.',
-                'ai_powered' => false,
-                'fallback_mode' => true,
-                'message' => $isCompleted ? 
-                    'Activity completed with basic validation!' : 
-                    'Activity submitted. Please review your code and try again.'
-            ]);
-
-        } catch (\Exception $fallbackError) {
-            Log::error('❌ Fallback validation also failed', [
-                'activity_id' => $activityId,
-                'fallback_error' => $fallbackError->getMessage()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Submission validation failed. Please try again later.',
-                'error' => 'validation_system_error'
-            ], 500);
-        }
-    }
-
-    /**
-     * Perform basic HTML validation as fallback
-     */
-    private function performBasicValidation($userCode)
-    {
-        $score = 0;
-
-        // Basic structure checks
-        if (stripos($userCode, '<!DOCTYPE html>') !== false) $score += 20;
-        if (preg_match('/<html[^>]*>.*<\/html>/s', $userCode)) $score += 20;
-        if (preg_match('/<head[^>]*>.*<\/head>/s', $userCode)) $score += 20;
-        if (preg_match('/<title[^>]*>.*<\/title>/s', $userCode)) $score += 20;
-        if (preg_match('/<body[^>]*>.*<\/body>/s', $userCode)) $score += 20;
-
-        return $score;
-    }
 
     /**
      * Analyze the quality of the student's code explanation
