@@ -168,8 +168,7 @@ class HTMLCourseExpansionSeeder extends Seeder
             'title' => 'Complete HTML Template',
             'description' => 'A full HTML template you can use as a starting point',
             'language' => 'html',
-            'metadata' => [
-                'initial_code' => '<!DOCTYPE html>
+            'initial_code' => '<!DOCTYPE html>
 <html>
 <head>
     <title>My Web Page</title>
@@ -197,7 +196,6 @@ class HTMLCourseExpansionSeeder extends Seeder
 - Additional headings using <h2> tags
 - More paragraphs about yourself
 - Different content that interests you',
-            ],
             'order_index' => 1,
         ]);
 
@@ -524,8 +522,7 @@ class HTMLCourseExpansionSeeder extends Seeder
             'title' => 'Complete HTML Page Example',
             'description' => 'A full HTML page demonstrating all basic elements',
             'language' => 'html',
-            'metadata' => [
-                'initial_code' => '<!DOCTYPE html>
+            'initial_code' => '<!DOCTYPE html>
 <html>
 <head>
     <title>Page Title</title>
@@ -562,7 +559,6 @@ class HTMLCourseExpansionSeeder extends Seeder
     <p>Thanks for visiting my page!</p>
 </body>
 </html>',
-            ],
             'hints' => 'Create a complete HTML page that includes:
 1. A proper DOCTYPE and HTML structure
 2. A meaningful page title
@@ -978,8 +974,7 @@ class HTMLCourseExpansionSeeder extends Seeder
             'title' => 'HTML Elements Practice',
             'description' => 'Practice creating properly nested HTML elements',
             'language' => 'html',
-            'metadata' => [
-                'initial_code' => '<!DOCTYPE html>
+            'initial_code' => '<!DOCTYPE html>
 <html>
 <body>
     <!-- Create a properly nested structure here -->
@@ -1009,7 +1004,6 @@ class HTMLCourseExpansionSeeder extends Seeder
     </div>
 </body>
 </html>',
-            ],
             'hints' => 'Create a properly structured HTML document that demonstrates:
 1. Nested elements (divs containing other elements)
 2. Proper opening and closing tags
@@ -1450,8 +1444,7 @@ class HTMLCourseExpansionSeeder extends Seeder
             'title' => 'Complete Attribute Example',
             'description' => 'Practice using various HTML attributes',
             'language' => 'html',
-            'metadata' => [
-                'initial_code' => '<!DOCTYPE html>
+            'initial_code' => '<!DOCTYPE html>
 <html>
 <head>
     <title>Attribute Practice</title>
@@ -1491,7 +1484,6 @@ class HTMLCourseExpansionSeeder extends Seeder
     </div>
 </body>
 </html>',
-            ],
             'hints' => 'Add appropriate attributes to make this page functional and accessible:
 1. Add lang attribute to html element
 2. Add id and class attributes to the h1
